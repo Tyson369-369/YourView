@@ -32,38 +32,12 @@ permissions:
   contents: read
 
 jobs:
-  debricked:
-    name: Debricked (SCA)
+  vulnerabilities-scan:
+    name: Vulnerabilities scan
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-
-      - name: Detect dependency manifests
-        id: detect
-        shell: bash
-        run: |
-          shopt -s globstar nullglob
-          files=(**/package.json **/package-lock.json **/yarn.lock **/pnpm-lock.yaml \
-                 **/requirements.txt **/Pipfile.lock **/poetry.lock \
-                 **/pom.xml **/build.gradle **/go.mod **/*.csproj **/packages.config \
-                 **/Gemfile.lock **/composer.lock)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "found=false" >> "$GITHUB_OUTPUT"
-          else
-            printf 'found manifest(s):\n%s\n' "${files[@]}"
-            echo "found=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: No manifests found - skipping SCA
-        if: steps.detect.outputs.found == 'false'
-        run: echo "Debricked skipped: no dependency files detected."
-
-      - name: Run Debricked
-        if: steps.detect.outputs.found == 'true'
-        uses: debricked/actions@v3
-        with:
- 
-          wait-for-results: true
+      - uses: debricked/actions@v3
         env:
           DEBRICKED_TOKEN: ${{ secrets.DEBRICKED_TOKEN }}
-
