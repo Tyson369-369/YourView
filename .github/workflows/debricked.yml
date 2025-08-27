@@ -44,17 +44,17 @@ jobs:
         run: |
           shopt -s globstar nullglob
           files=(**/package.json **/package-lock.json **/yarn.lock **/pnpm-lock.yaml \
-                 **/requirements.txt **/Pipfile **/Pipfile.lock **/poetry.lock \
-                 **/pom.xml **/build.gradle* **/go.mod **/*.csproj **/packages.config \
+                 **/requirements.txt **/Pipfile.lock **/poetry.lock \
+                 **/pom.xml **/build.gradle **/go.mod **/*.csproj **/packages.config \
                  **/Gemfile.lock **/composer.lock)
           if [ ${#files[@]} -eq 0 ]; then
             echo "found=false" >> "$GITHUB_OUTPUT"
           else
-            printf 'Found manifest(s):\n%s\n' "${files[@]}"
+            printf 'found manifest(s):\n%s\n' "${files[@]}"
             echo "found=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: No manifests found — skipping SCA
+      - name: No manifests found - skipping SCA
         if: steps.detect.outputs.found == 'false'
         run: echo "Debricked skipped: no dependency files detected."
 
@@ -62,7 +62,7 @@ jobs:
         if: steps.detect.outputs.found == 'true'
         uses: debricked/actions@v3
         with:
-          # path: ./backend   # <- uncomment & set if manifests are in a subfolder
+ 
           wait-for-results: true
         env:
           DEBRICKED_TOKEN: ${{ secrets.DEBRICKED_TOKEN }}
