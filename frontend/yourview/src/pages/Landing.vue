@@ -52,6 +52,50 @@
     </div>
   </section>
 
+<!-- why is it matter -->
+<section id="why-matter" class="cover alt why">
+  <div class="container two-col">
+    <!-- LEFT: BeerSlider media card -->
+    <figure class="why-media">
+      <div class="beer-slider" data-beer-label="Low canopy">
+        <img src="@/assets/fat_after.jpg" alt="Street before tree canopy" />
+        <div class="beer-reveal" data-beer-label="Tree canopy">
+          <img src="@/assets/fat.jpg" alt="Street after tree canopy" />
+        </div>
+      </div>
+      <figcaption class="tag">Slide to compare</figcaption>
+    </figure>
+
+    <!-- RIGHT: copy card with shadow -->
+    <div class="why-card">
+      
+      <h2 class="why-title"><span>Why It Matters To You</span></h2>
+
+      <article class="why-point">
+        <h3>Less Trees, Higher Cardiac Risk <span class="chip">~30% ↑ risk</span></h3>
+        <p>
+          Research shows people in low-greenery areas have a <strong>~30% higher</strong>
+          risk of heart disease due to heat and stress exposure.
+        </p>
+      </article>
+
+      <article class="why-point">
+        <h3>Green Space Boosts Mental Health</h3>
+        <p>
+          Access to nearby parks reduces anxiety and improves recovery—regular
+          exposure to trees correlates with better wellbeing.
+        </p>
+      </article>
+
+      <ul class="data-chips">
+        <li>Shade drop up to −5 °C</li>
+        <li>3–30–300 model</li>
+        <li>Cool streets, safer walks</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
 
     <!-- footer -->
     <Footer />
@@ -67,6 +111,10 @@ import gsap from 'gsap'
 import ScrollTrigger from 'gsap/ScrollTrigger'
 import Observer from 'gsap/Observer'
 gsap.registerPlugin(ScrollTrigger, Observer)
+
+// import beer slider
+import BeerSlider from 'beerslider'
+import 'beerslider/dist/BeerSlider.css'
 
 // Assets (adjust paths if needed)
 import instagram1 from '@/assets/instagram1.png'
@@ -137,7 +185,7 @@ onMounted(() => {
     })
   })
 
-  // Optional swipe between panels
+  
   let index = 0
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v))
   const goTo = (i) => {
@@ -169,6 +217,46 @@ onMounted(() => {
     ScrollTrigger.getAll().forEach(st => st.kill())
   })
 })
+
+// why matter
+gsap.registerPlugin(ScrollTrigger)
+
+onMounted(() => {
+  const section = document.querySelector('#why-matter')
+  if (!section) return
+
+  // Init BeerSlider(s)
+  const beerEls = section.querySelectorAll('.beer-slider')
+  beerEls.forEach(el => new BeerSlider(el))
+
+  // GSAP bits
+  const img    = section.querySelector('.why-media')
+  const title  = section.querySelector('.why-title')
+  const kicker = section.querySelector('.kicker')
+  const points = section.querySelectorAll('.why-point')
+
+  const tl = gsap.timeline({
+    scrollTrigger: { trigger: section, start: 'top 72%', toggleActions: 'play none none reverse' }
+  })
+
+  tl.from(img,    { y: 40, opacity: 0, duration: 0.6, ease: 'power2.out' })
+    .from(kicker, { y: 16, opacity: 0, duration: 0.35 }, '-=0.2')
+    .from(title,  { y: 18, opacity: 0, duration: 0.4  }, '-=0.2')
+    .from(points, { y: 14, opacity: 0, duration: 0.35, stagger: 0.1, ease: 'power2.out' }, '-=0.1')
+
+  // gentle parallax on the media card
+  const parallax = gsap.to(img, {
+    y: -20, ease: 'none',
+    scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: true }
+  })
+
+  onBeforeUnmount(() => {
+    tl.kill()
+    parallax.kill()
+    ScrollTrigger.getAll().forEach(t => t.kill())
+  })
+})
+
 </script>
 
 
@@ -224,7 +312,6 @@ onMounted(() => {
   transform: translateY(calc(-10px * var(--hero-progress)));
   transition: opacity 0.2s linear, transform 0.2s linear;
 }
-
 
 .cta {
   display: inline-block;
@@ -305,6 +392,135 @@ p  { max-width: 60ch; margin: 0 auto 1rem; }
   max-width: 500px;
   height: auto;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+
+/* why matter */
+/* why matter */
+.why {
+  --card-radius: 16px;
+  --ring: 0 1px 2px rgba(0,0,0,.06), 0 12px 30px rgba(0,0,0,.08);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--bg) 92%, #d9ffe9 8%), var(--bg));
+  color: var(--fg);
+  padding: clamp(3.5rem, 6vw, 6rem) 1.5rem;
+}
+
+/* Center the whole section and limit width */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+  align-items: start;
+  width: min(1100px, 92%);
+  margin-inline: auto;           /* centers */
+}
+@media (min-width: 900px) {
+  .two-col { grid-template-columns: 1.1fr 1fr; }
+}
+
+/* Media card (left) */
+.why-media {
+  position: relative;
+  border-radius: var(--card-radius);
+  isolation: isolate;
+  box-shadow: var(--ring);
+  overflow: clip;
+  background: var(--bg);
+}
+.why-media::before {
+  content: "";
+  position: absolute; inset: -20% 40% 40% -20%;
+  background: radial-gradient(60% 60% at 30% 30%, color-mix(in oklab, var(--secondary) 40%, #fff 60%) 0%, transparent 70%);
+  filter: blur(30px); opacity: .35; z-index: 0;
+}
+.why-media .tag {
+  position: absolute; left: .75rem; bottom: .75rem; z-index: 2;
+  background: color-mix(in oklab, #000 55%, transparent 45%);
+  color: #fff; padding: .35rem .6rem; font-size: .72rem;
+  border-radius: 999px; backdrop-filter: blur(6px);
+}
+
+/* BeerSlider reset inside the card */
+.beer-slider, .beer-reveal { display:block; }
+.beer-slider img {
+  display:block; width:100%; height:auto; border-radius: var(--card-radius);
+}
+.beer-slider { --beer-handle-size: 38px; } /* optional: tweak handle size */
+
+/* Copy card (right) — adds the “pop” */
+.why-card{
+  background: #fff;
+  color: #101010;
+  border-radius: var(--card-radius);
+  box-shadow: var(--ring);
+  padding: clamp(1rem, 2.8vw, 1.5rem);
+  position: relative;
+}
+
+/* Kicker */
+.kicker{
+  display:inline-flex; align-items:center; gap:.4rem;
+  font: 500 .8rem/1 var(--font);
+  color: color-mix(in oklab, var(--secondary) 50%, #1a1a1a 50%);
+  background: color-mix(in oklab, var(--secondary) 18%, #fff 82%);
+  padding: .35rem .6rem; border-radius: 999px; margin-bottom: .6rem;
+}
+.kicker::before{ content:""; width:.4rem; height:.4rem; border-radius:999px; background: var(--secondary); }
+
+/* Title */
+.why-title {
+  margin: 0 0 1rem 0;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  line-height: 1.15; letter-spacing: -0.01em;
+}
+.why-title span {
+  box-shadow: inset 0 -8px 0 color-mix(in oklab, var(--secondary) 22%, white 78%);
+}
+
+/* Points */
+.why-point + .why-point { margin-top: 1.15rem; }
+.why-point h3 {
+  margin: 0 0 .35rem 0;
+  font-size: clamp(1.06rem, 1.3vw, 1.25rem);
+  display:flex; flex-wrap:wrap; align-items:center; gap:.4rem;
+}
+.why-point p  { margin: 0; color: #545b5b; line-height: 1.65; }
+
+/* Chips */
+.data-chips { margin-top: 1rem; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:.5rem; }
+.data-chips li{
+  font-size:.78rem; color: color-mix(in oklab, var(--secondary) 60%, #0b3d2e 40%);
+  background: color-mix(in oklab, var(--secondary) 15%, #fff 85%);
+  border: 1px solid color-mix(in oklab, var(--secondary) 30%, #000 70% / 6%);
+  padding:.35rem .6rem; border-radius:999px;
+}
+.chip{
+  font-size:.72rem; font-weight:600;
+  color:#0e3b2e; background: #dff7ec; border:1px solid #bfead9;
+  padding:.22rem .5rem; border-radius:999px;
+}
+
+/* Hover lift on media (subtle) */
+@media (hover:hover){
+  .why-media:hover img{ transform: translateY(-2px) scale(1.01); transition: transform .6s cubic-bezier(.22,1,.36,1); }
+}
+
+/* Motion-reduction */
+@media (prefers-reduced-motion: reduce){
+  .why-media:hover img{ transform:none !important; }
+}
+
+#why-matter.why {
+  min-height: 100dvh;              
+  display: flex;
+  align-items: center;              /* vertical centering */
+  justify-content: center;          /* horizontal centering (the grid already limits width) */
+  padding-block: clamp(2.5rem, 6vh, 5rem);  /* keep some breathing space */
+  margin-block: 0;                 
+}
+
+#why-matter .two-col {
+  align-items: center;
+  margin-inline: auto;            
 }
 
 </style>
