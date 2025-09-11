@@ -2,7 +2,7 @@
     <h1>step 3 green score result</h1>
 
     <button ref="btnEl" class="btn" @click="goNext">
-        <span>Continue</span>
+        <span>Visit Home Page</span>
         <span class="arrow">→</span>
     </button>
 
@@ -12,7 +12,7 @@
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const goNext = () => router.push('/intro/step4')
+const goNext = () => router.push('/landing')
 
 </script>
 
