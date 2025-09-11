@@ -23,10 +23,10 @@
 <script setup>
 import { onMounted, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { gsap } from 'gsap'
+
 
 const router = useRouter()
-const goNext = () => router.push('/landing')
+const goNext = () => router.push({ name: 'landing', query: { splash: 1 } })
 
 const btnEl = ref(null)
 const bgEl = ref(null)

@@ -7,6 +7,11 @@
         <source src="/leaf_hero.mp4" type="video/mp4" />
       </video>
 
+      <!-- splash overlay that fades out -->
+      <div v-if="showSplash" class="splash over-video" :class="{ done: splashDone }">
+        <img class="tree" src="@/assets/leaf_hero.jpg" alt="Tree" />
+      </div>
+
       <!-- Overlay to make text readable -->
       <div class="overlay"></div>
 
@@ -155,6 +160,18 @@ import Footer from '@/components/Footer.vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const showSplash = ref(false)
+const splashDone = ref(false)
+
+onMounted(() => {
+  // If you came from step3 with a splash request, e.g. ?splash=1
+  const hasSplash = new URLSearchParams(location.search).get('splash') === '1'
+  if (!hasSplash) return
+
+  showSplash.value = true
+  setTimeout(() => { splashDone.value = true }, 1200)  // start fade
+  setTimeout(() => { showSplash.value = false }, 1700) // remove from DOM
+})
 
 // tiny fade/blur effect on scroll using CSS var (no library)
 onMounted(() => {
@@ -246,6 +263,23 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* entry splash */
+.splash.over-video{
+  position: fixed; inset:0; z-index: 5;         /* above video, below hero text if you want */
+  background: #F8FEF6; display:grid; place-items:center;
+  transition: opacity .5s ease;
+}
+.splash.over-video.done{ opacity: 0; }
+
+.splash .tree{
+  width: 200px; animation: grow 1.2s ease-out forwards;
+}
+@keyframes grow{
+  0% { transform: scale(.7); opacity: 0; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 :root {
   /* 0 at top, 1 when the next section fully covers the hero */
   --hero-progress: 0;
