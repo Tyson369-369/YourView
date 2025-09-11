@@ -21,12 +21,12 @@
         <p>Upload your view, get your Green Score, and uncover how your surroundings affect your health and happiness.
         </p>
 
-        <!-- button -->
-        <button ref="btnEl" class="btn" @click="goNext">
+        <!-- cta button -->
+        <button class="btn" @click="goNext('upload')">
           <span>Upload My Window View</span>
         </button>
 
-        <button ref="btnE2" class="btn" @click="goNext">
+        <button class="btn" @click="goNext('why')">
           <span>Find out why</span>
         </button>
 
@@ -160,6 +160,15 @@ import Footer from '@/components/Footer.vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+
+const goNext = (type) => {
+  if (type === 'upload') {
+    router.push({ name: 'upload_window' })   
+  } else if (type === 'why') {
+    router.push({ name: 'intro-step1' }) 
+  }
+}
+
 const showSplash = ref(false)
 const splashDone = ref(false)
 
@@ -269,7 +278,7 @@ onMounted(() => {
   background: #F8FEF6; display:grid; place-items:center;
   transition: opacity .5s ease;
 }
-.splash.over-video.done{ opacity: 0; }
+.splash.over-video.done{ opacity: 0; pointer-events: none;  }
 
 .splash .tree{
   width: 200px; animation: grow 1.2s ease-out forwards;
@@ -289,7 +298,7 @@ onMounted(() => {
 .hero.pinned {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
 }
 
 .hero-bg {
@@ -297,19 +306,23 @@ onMounted(() => {
   inset: 0;
   width: 100%;
   height: 100%;
+  z-index: 0;
   object-fit: cover;
 }
 
 .overlay {
+  pointer-events: none;
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: rgba(0, 0, 0, calc(0.35 + 0.25 * var(--hero-progress)));
   transition: background 0.2s linear;
+  
 }
 
 .hero-content {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   text-align: center;
   color: #ffffff;
   max-width: 800px;
@@ -647,7 +660,9 @@ p {
 .nature {
   background: linear-gradient(135deg, #1a7733, #77a947);
   color: #fff;
-  padding: 4rem 1.5rem;   /* not full screen */
+  padding: 4rem 1.5rem;
+  position: relative;   
+  
 }
 
 .nature-wrap {
