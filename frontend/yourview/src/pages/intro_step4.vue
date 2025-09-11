@@ -1,23 +1,21 @@
 <template>
-    <h1>step 3 green score result</h1>
+    <h1>step 4 make your place grener</h1>
 
-    <button ref="btnEl" class="btn" @click="goNext">
-        <span>Continue</span>
+    <button ref="btnEl" class="btn" data-flip-id="continue" @click="goNext">
+        <span>Visit our page</span>
         <span class="arrow">→</span>
     </button>
 
 </template>
 
 <script setup>
+
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const goNext = () => router.push('/intro/step4')
+const goNext = () => router.push('/landing')
 
 </script>
-
-
-
 
 
 <style>
