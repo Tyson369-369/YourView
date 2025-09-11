@@ -8,8 +8,8 @@
       <!-- PHONE OVERLAY -->
       <img ref="phoneEl" class="art phone" src="@/assets/hand_holding_phone.png" alt="Hand holding phone" />
 
-      <h2 ref="titleEl">Snap Your Window</h2>
-      <p class="sub" ref="subEl">Reveal Your Green Score</p>
+      <h2 ref="titleEl">Your Green Score</h2>
+      <p class="sub" ref="subEl">Measured by the 3-30-300 Rule</p>
 
       <!-- button -->
       <button ref="btnEl" class="btn" data-flip-id="continue" @click="goNext">
@@ -27,7 +27,7 @@ import { useRouter } from 'vue-router'
 import { gsap } from 'gsap'
 
 const router = useRouter()
-const goNext = () => router.push('/intro/step2')
+const goNext = () => router.push('/intro/step3')
 
 const btnEl = ref(null)
 const bgEl = ref(null)
@@ -35,56 +35,6 @@ const phoneEl = ref(null)
 const titleEl = ref(null)
 const subEl = ref(null)
 
-onMounted(async () => {
-  await nextTick()
-
-  // Respect reduced motion
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (prefersReduced) {
-    gsap.set([bgEl.value, phoneEl.value, titleEl.value, subEl.value], {
-      clearProps: 'all',
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      rotation: 0,
-    })
-    return
-  }
-
-  const tl = gsap.timeline({ defaults: { ease: 'power2.out' } })
-
-  // 1) Background enters first
-  tl.from(bgEl.value, {
-    opacity: 0,
-    scale: 0.85,
-    duration: 0.9,
-  })
-
-  // 2) Phone slides up with a subtle swing
-  tl.from(
-    phoneEl.value,
-    {
-      y: 180,
-      rotation: -6,
-      opacity: 0,
-      duration: 1.1,
-      ease: 'back.out(1.4)',
-    },
-    '-=0.25',
-  ) // slight overlap for flow
-
-  // 3) Text lifts in
-  tl.from(
-    [titleEl.value, subEl.value],
-    {
-      y: 20,
-      opacity: 0,
-      duration: 0.5,
-      stagger: 0.08,
-    },
-    '-=0.4',
-  )
-})
 </script>
 
 <style scoped>
