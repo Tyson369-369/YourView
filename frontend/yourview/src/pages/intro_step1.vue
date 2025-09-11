@@ -4,27 +4,19 @@
 
     <section class="center">
       <!-- BACKGROUND -->
-      <img
-        ref="bgEl"
-        class="art bg"
-        src="@/assets/BACKGROUND.png"
-        alt="Decorative blob background"
-      />
+      <img ref="bgEl" class="art bg" src="@/assets/BACKGROUND.png" alt="Decorative blob background" />
       <!-- PHONE OVERLAY -->
-      <img
-        ref="phoneEl"
-        class="art phone"
-        src="@/assets/hand_holding_phone.png"
-        alt="Hand holding phone"
-      />
+      <img ref="phoneEl" class="art phone" src="@/assets/hand_holding_phone.png" alt="Hand holding phone" />
 
       <h2 ref="titleEl">Snap Your Plant</h2>
       <p class="sub" ref="subEl">To check its health</p>
 
-      <button ref="btnEl" class="btn" @click="goNext">
+      <!-- button -->
+      <button ref="btnEl" class="btn" data-flip-id="continue" @click="goNext">
         <span>Continue</span>
         <span class="arrow">→</span>
       </button>
+
     </section>
   </main>
 </template>
@@ -100,13 +92,15 @@ onMounted(async () => {
   min-height: 100dvh;
   background: #f8fef6;
   display: grid;
-  grid-template-rows: auto 1fr; /* only two rows: skip | content */
+  grid-template-rows: auto 1fr;
+  /* only two rows: skip | content */
   padding-block: clamp(12px, 2.5vh, 24px);
   padding-inline: clamp(16px, 4vw, 32px);
 }
 
 .center {
-  position: relative; /* for overlay */
+  position: relative;
+  /* for overlay */
   align-self: center;
   justify-self: center;
   text-align: center;
@@ -132,12 +126,15 @@ onMounted(async () => {
   position: relative;
   z-index: 1;
 }
+
 .phone {
   position: absolute;
   left: 50%;
   top: 8%;
-  transform: translateX(-50%); /* center horizontally */
-  width: 68%; /* smaller than bg so bg shows around */
+  transform: translateX(-50%);
+  /* center horizontally */
+  width: 68%;
+  /* smaller than bg so bg shows around */
   z-index: 2;
   transform-origin: 50% 80%;
   pointer-events: none;
@@ -149,6 +146,7 @@ h2 {
   font-size: clamp(20px, 3.6vw, 28px);
   font-weight: 800;
 }
+
 .sub {
   margin: 0;
   color: #103713;
@@ -162,8 +160,10 @@ h2 {
   height: 48px;
   border: none;
   border-radius: 12px;
-  background: #103731; /* solid color (no var()) */
-  color: #fff; /* readable text */
+  background: #103731;
+  /* solid color (no var()) */
+  color: #fff;
+  /* readable text */
   font-weight: 700;
   font-size: 16px;
   display: flex;
@@ -178,10 +178,12 @@ h2 {
     background 0.15s ease,
     transform 0.06s ease;
 }
+
 .btn:hover {
   background: #0c2a22;
-  transform: scale(1.05); 
-} 
+  transform: scale(1.05);
+}
+
 .btn:active {
   transform: translateY(1px);
 }

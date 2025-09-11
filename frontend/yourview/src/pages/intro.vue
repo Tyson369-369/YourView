@@ -15,7 +15,7 @@
 
     <!-- button -->
     <section class="cta">
-      <button ref="btnEl" class="btn" @click="goNext">
+      <button ref="btnEl" class="btn" data-flip-id="continue" @click="goNext">
         <span>Continue</span>
         <span class="arrow">→</span>
       </button>
@@ -31,18 +31,19 @@
 
     <!-- bush - bottom art-->
     <figure ref="illustrationEl" class="illustration">
-      <img src="@/assets/intro_bush.png" alt="" aria-hidden="true" />
+      <!-- <img src="@/assets/intro_bush.png" alt="" aria-hidden="true" /> -->
     </figure>
   </main>
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue"
+import { onMounted, ref, nextTick } from "vue"
 import { gsap } from "gsap"
+import Flip from 'gsap/Flip'
 import { useRouter } from "vue-router"
 
 const router = useRouter()
-const goNext = () => router.push({ name: "intro-step1" })
+gsap.registerPlugin(Flip)
 
 // Refs
 const titleEl = ref(null)
@@ -63,9 +64,27 @@ onMounted(() => {
     .from(illustrationEl.value, { opacity: 0, y: 40, duration: 1 }, "-=0.6")
 })
 
+const goNext = async () => {
+  const state = Flip.getState('[data-flip-id="continue"]')
+
+  await router.push({ name: 'intro-step1' })
+  await nextTick()
+  await new Promise(requestAnimationFrame)
+
+  // animate old -> new
+  Flip.from(state, {
+    duration: 0.6,
+    ease: 'power3.inOut',
+    absolute: true, 
+    nested: true,
+    scale: true,
+    simple: true
+  })
+}
 </script>
 
 <style>
+
 .landing {
   position: relative;
   min-height: 100dvh;
