@@ -73,6 +73,72 @@
       </div>
     </section>
 
+    <section id="rule-330300" class="cover rule">
+      <div class="rule-wrap">
+        <h2 class="rule-title">
+          Understanding the <span class="accent">3-30-300 Rule</span>
+        </h2>
+        <p class="rule-sub">
+          A science-based framework used by urban planners to ensure everyone has
+          adequate access to nature for health and wellbeing.
+        </p>
+
+        <!-- 3 cards -->
+        <div class="rule-grid">
+          <article class="rule-card">
+            <!-- <img class="icon" :src="new URL('@/assets/green.jpg', import.meta.url)"  /> -->
+            <h3><strong>3</strong><br> Trees from your window</h3>
+            <p>You should be able to see at least 3 trees from your home window for mental wellbeing and connection to
+              nature.</p>
+          </article>
+
+          <article class="rule-card">
+            <!-- <img class="icon" :src="new URL('@/assets/green.jpg', import.meta.url)"  /> -->
+            <h3><strong>30%</strong><br> Neighbourhood canopy</h3>
+            <p>Your local area needs 30% tree canopy coverage to reduce urban heat and improve air quality.</p>
+          </article>
+
+          <article class="rule-card">
+            <!-- <img class="icon" :src="new URL('@/assets/green.jpg', import.meta.url)"  /> -->
+            <h3><strong>300m</strong><br> Green space access</h3>
+            <p>A quality green space should be within 300 metres (5–10 min walk) for regular nature contact.</p>
+          </article>
+        </div>
+
+        <!-- why this matter for melbourne -->
+        <aside class="rule-callout">
+          <div class="tag" aria-hidden="true">!</div>
+          <div>
+            <h4>Why this matters for Melbourne</h4>
+            <p>
+              🔥🔥🔥Melbourne is heating up 🔥🔥🔥
+            </p>
+            <p>
+              Some suburbs are up to 12°C hotter than leafy areas.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- nature is missing -->
+    <section id="nature-missing" class="nature">
+    <div class="nature-wrap">
+      <h2>Nature Is Missing from Our Community</h2>
+      <p>
+        Our cities need more nature. Trees and parks help cool streets, improve health,
+        and create sustainable, livable communities where everyone can thrive
+      </p>
+
+      <div class="nature-stats">
+        <div><strong>75%</strong><br>Melbourne areas NOT have enough tree cover</div>
+        <div><strong>5.3M+</strong><br>Population of people living in Melbourne</div>
+        <div><strong>30</strong><br>Median age in the City of Melbourne</div>
+        <div><strong>86%</strong><br>Residents are calling for more green spaces</div>
+      </div>
+    </div>
+  </section>
+
     <!-- footer -->
     <Footer />
   </div>
@@ -111,7 +177,7 @@ const services = [
     // first service
     // img: new URL('@/assets/green.jpg', import.meta.url),
     title: 'Check your green score',
-    desc: 'Upload a photo from your window to get a greenery score and nearby parks.',
+    desc: 'Is your home green enough? Upload a photo and find out — trees, cover, and parks measured by the 3-30-300 rule.',
     cta: 'Upload my window',
     action: () => router.push({ name: 'upload_window' })
   },
@@ -119,25 +185,35 @@ const services = [
     // second service
     // img: new URL('@/assets/suburb.jpg', import.meta.url),
     title: 'Check your suburb heat',
-    desc: 'See a heat risk index combining tree cover, surfaces and shading.',
+    desc: 'Is your suburb overheating? Cities lose plants, gain concrete, and lock in heat — the Urban Heat Island Effect.',
     cta: 'Check suburb heat',
-    action: () => router.push({ name: 'intro-step1' })
+    action: () => router.push({ name: 'heatmap' })
   },
   {
     // third service
     // img: new URL('@/assets/plant.jpg', import.meta.url),
     title: 'Keep your plant alive',
-    desc: 'Care schedules, health check and quick tips with your camera.',
+    desc: 'Got a struggling plant? Snap it, get instant tips, and bring the green back into your space.',
     cta: 'Open Plant Health',
-    action: () => router.push({ name: 'intro-step2' })
+    action: () => router.push({ name: 'plant_health' })
   },
   {
     // fourth service
     // img: new URL('@/assets/plant.jpg', import.meta.url),
+    title: 'Find Your Green Companion',
+    desc: 'Discover 3 plants made for you. Shuffle for more and learn how to care for them with ease.',
+    cta: 'My Green Picks',
+    action: () => router.push({ name: 'intro-step2' })
+    // the page have not created
+  },
+  {
+    // fifth service
+    // img: new URL('@/assets/plant.jpg', import.meta.url),
     title: 'Raise your voice',
-    desc: 'Your voice matters! Request more green space, report dying trees, and vote for the next green laneway to cool our city. We want to hear from you!',
+    desc: 'Your voice matters! Request more green space and vote for the next green laneway to cool our city. We want to hear from you!',
     cta: 'Contact council',
     action: () => router.push({ name: 'intro-step2' })
+    // the petition page have not created
   },
 
 ]
@@ -252,7 +328,7 @@ p {
   z-index: 1;
   /* above the fixed hero */
   background: #F8FEF6;
-  min-height: 100vh;
+  min-height: 80vh;
   padding: 6rem 1.5rem;
 }
 
@@ -283,12 +359,12 @@ p {
 .services-wrap {
   position: relative;
   max-width: 1100px;
-  margin: 0 auto;         
+  margin: 0 auto;
 }
 
 .services-swiper .swiper-wrapper {
   display: flex;
-  justify-content: center; 
+  justify-content: center;
 }
 
 /* arrows */
@@ -324,7 +400,7 @@ p {
 
 /* cards */
 .services-swiper {
-  max-width: 1000px;       
+  max-width: 1000px;
   margin: 0 auto;
   padding: .5rem 1.25rem;
 }
@@ -334,8 +410,13 @@ p {
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  transform-origin: center center;
-  transition: box-shadow .25s ease;
+  transform-origin: center;
+  transition: box-shadow .3s ease;
+
+  width: 300px;
+  height: 380px;
+  display: flex;
+  flex-direction: column;
 }
 
 .card .thumb {
@@ -346,6 +427,10 @@ p {
 }
 
 .card .body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   padding: 14px 14px 16px;
 }
 
@@ -377,10 +462,192 @@ p {
 }
 
 .cover.services {
-  min-height: 100vh;          
-  display: grid;              
-  place-content: center;      
-  padding: 3rem 1.5rem;     
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  padding: 3rem 1.5rem;
   background: #F8FEF6;
 }
+
+/* 3-30-300 */
+.cover.rule {
+  background: #ffffff;
+  padding: 20rem 2rem;
+
+}
+
+.rule-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2); 
+  border: 1px solid #e6e6e6;
+}
+
+.rule-title {
+  text-align: center;
+  font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+  margin: 0 0 .25rem;
+}
+
+.rule-title .accent {
+  color: #0f7b4a;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rule-sub {
+  text-align: center;
+  color: #5b6963;
+  max-width: 60ch;
+  margin: 0 auto 2rem;
+}
+
+/* grid of 3 cards */
+.rule-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .rule-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .rule-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rule-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  gap: 10px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .08);
+  transition: transform .25s ease, box-shadow .25s ease;
+  min-height: 210px;
+}
+
+.rule-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, .12);
+}
+
+.rule-card .icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
+}
+
+.rule-card .icon.blue {
+  background: #edf3ff;
+}
+
+.rule-card .icon.green {
+  background: #eaf7ee;
+}
+
+.rule-card .icon.teal {
+  background: #e9f8f3;
+}
+
+.rule-card h3 {
+  line-height: 1.2;
+  margin: 4px 0 2px;
+  font-size: 1.05rem;
+}
+
+.rule-card p {
+  color: #4c5a53;
+  margin: 0;
+}
+
+/* callout */
+.rule-callout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  background: #FAF0F0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .06);
+  border: 1px solid #e6eee9;
+}
+
+.rule-callout .tag {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #ffedd5;
+  color: #b45309;
+  font-weight: 700;
+}
+
+.rule-callout h4 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.rule-callout p {
+  margin: 0;
+  color: #4c5a53;
+}
+
+
+/* nature is missing */
+.nature {
+  background: linear-gradient(135deg, #1a7733, #77a947);
+  color: #fff;
+  padding: 4rem 1.5rem;   /* not full screen */
+}
+
+.nature-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.nature h2 {
+  font-size: clamp(1.8rem, 3vw, 2.2rem);
+  margin-bottom: 1rem;
+}
+
+.nature p {
+  max-width: 60ch;
+  margin: 0 auto 2rem;
+  opacity: 0.9;
+}
+
+.nature-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+}
+
+.nature-stats strong {
+  font-size: 1.8rem;
+}
+
+@media (max-width: 800px) {
+  .nature-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+  .nature-stats { grid-template-columns: 1fr; }
+}
+
 </style>
