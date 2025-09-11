@@ -1,12 +1,11 @@
 <template>
   <main class="intro">
-    <RouterLink class="skip" to="/home">SKIP</RouterLink>
 
     <section class="center">
-      <!-- BACKGROUND -->
+       <!-- BACKGROUND -->
       <img ref="bgEl" class="art bg" src="@/assets/BACKGROUND.png" alt="Decorative blob background" />
       <!-- PHONE OVERLAY -->
-      <img ref="phoneEl" class="art phone" src="@/assets/hand_holding_phone.png" alt="Hand holding phone" />
+      <img ref="phoneEl" class="art phone" src="@/assets/step2.png" alt="Hand holding phone" />
 
       <h2 ref="titleEl">Your Green Score</h2>
       <p class="sub" ref="subEl">Measured by the 3-30-300 Rule</p>
@@ -16,7 +15,7 @@
         <span>Continue</span>
         <span class="arrow">→</span>
       </button>
-
+      <RouterLink class="skip mt-3" to="/home">SKIP</RouterLink>
     </section>
   </main>
 </template>
@@ -39,35 +38,30 @@ const subEl = ref(null)
 
 <style scoped>
 .intro {
-  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full viewport height */
   background: #f8fef6;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  /* only two rows: skip | content */
-  padding-block: clamp(12px, 2.5vh, 24px);
   padding-inline: clamp(16px, 4vw, 32px);
 }
 
 .center {
   position: relative;
-  /* for overlay */
   align-self: center;
   justify-self: center;
   text-align: center;
-  width: min(520px, 80vw);
-
-  /* stack items nicely so the button sits right under the text */
-  display: flex;
+   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  gap: 8px; /* <--- this gives 16px vertical space */
+  text-align: center;
+  width: min(520px, 80vw);
 }
 
 .art {
   width: 100%;
   max-height: 52vh;
   object-fit: contain;
-  display: block;
   margin: 0 auto 16px;
 }
 
@@ -80,10 +74,9 @@ const subEl = ref(null)
 .phone {
   position: absolute;
   left: 50%;
-  top: 8%;
   transform: translateX(-50%);
   /* center horizontally */
-  width: 68%;
+  width: 100%;
   /* smaller than bg so bg shows around */
   z-index: 2;
   transform-origin: 50% 80%;
@@ -106,7 +99,7 @@ h2 {
 
 /* Fixed, solid button */
 .btn {
-  width: min(520px, 86vw);
+  width: 100%;
   height: 48px;
   border: none;
   border-radius: 12px;
@@ -121,6 +114,7 @@ h2 {
   justify-content: center;
   gap: 8px;
   cursor: pointer;
+  margin-top: 16px;
   box-shadow:
     0 2px 0 rgba(0, 0, 0, 0.08),
     0 10px 24px rgba(17, 60, 46, 0.22);

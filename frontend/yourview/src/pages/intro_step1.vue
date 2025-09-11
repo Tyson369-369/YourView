@@ -1,12 +1,11 @@
 <template>
   <main class="intro">
-    <RouterLink class="skip" to="/home">SKIP</RouterLink>
 
     <section class="center">
       <!-- BACKGROUND -->
       <img ref="bgEl" class="art bg" src="@/assets/BACKGROUND.png" alt="Decorative blob background" />
       <!-- PHONE OVERLAY -->
-      <img ref="phoneEl" class="art phone" src="@/assets/hand_holding_phone.png" alt="Hand holding phone" />
+      <img ref="phoneEl" class="art phone" src="@/assets/step1.png" alt="Hand holding phone" />
 
       <h2 ref="titleEl">Snap Your Window</h2>
       <p class="sub" ref="subEl">Reveal Your Green Score</p>
@@ -16,7 +15,7 @@
         <span>Continue</span>
         <span class="arrow">→</span>
       </button>
-
+      <RouterLink class="skip mt-3" to="/home">SKIP</RouterLink>
     </section>
   </main>
 </template>
@@ -89,30 +88,25 @@ onMounted(async () => {
 
 <style scoped>
 .intro {
-  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full viewport height */
   background: #f8fef6;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  /* only two rows: skip | content */
-  padding-block: clamp(12px, 2.5vh, 24px);
   padding-inline: clamp(16px, 4vw, 32px);
 }
 
 .center {
   position: relative;
-  /* for overlay */
   align-self: center;
   justify-self: center;
   text-align: center;
-  width: min(520px, 80vw);
-
-  /* stack items nicely so the button sits right under the text */
-  display: flex;
+   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  gap: 8px; /* <--- this gives 16px vertical space */
+  text-align: center;
+  width: min(520px, 80vw);
 }
-
 .art {
   width: 100%;
   max-height: 52vh;
@@ -130,10 +124,9 @@ onMounted(async () => {
 .phone {
   position: absolute;
   left: 50%;
-  top: 8%;
   transform: translateX(-50%);
   /* center horizontally */
-  width: 68%;
+  width: 100%;
   /* smaller than bg so bg shows around */
   z-index: 2;
   transform-origin: 50% 80%;
@@ -170,6 +163,7 @@ h2 {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  margin-top: 16px;
   cursor: pointer;
   box-shadow:
     0 2px 0 rgba(0, 0, 0, 0.08),
