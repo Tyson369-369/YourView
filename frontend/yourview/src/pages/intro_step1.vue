@@ -21,7 +21,10 @@
       <h2 ref="titleEl">Snap Your Plant</h2>
       <p class="sub" ref="subEl">To check its health</p>
 
-      <button class="btn" @click="goNext">Continue <span aria-hidden="true">→</span></button>
+      <button ref="btnEl" class="btn" @click="goNext">
+        <span>Continue</span>
+        <span class="arrow">→</span>
+      </button>
     </section>
   </main>
 </template>
@@ -34,6 +37,7 @@ import { gsap } from 'gsap'
 const router = useRouter()
 const goNext = () => router.push('/intro/step2')
 
+const btnEl = ref(null)
 const bgEl = ref(null)
 const phoneEl = ref(null)
 const titleEl = ref(null)
@@ -176,7 +180,8 @@ h2 {
 }
 .btn:hover {
   background: #0c2a22;
-} /* defined hover color */
+  transform: scale(1.05); 
+} 
 .btn:active {
   transform: translateY(1px);
 }

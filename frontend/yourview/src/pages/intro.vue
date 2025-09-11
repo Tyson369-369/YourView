@@ -1,18 +1,27 @@
 <template>
   <main class="landing">
+    <!-- logo -> header -> btn -> term -->
+
+    <!-- logo -->
+    <figure ref="logoEl" class="logo">
+      <img src="@/assets/logo_only.png" alt="" aria-hidden="true" />
+    </figure>
+
+    <!-- header -->
     <header class="brand">
-      <!-- <img class="logo" src="@/assets/logo.svg" alt="YourView logo" /> -->
-      <h1>Welcome to YourView</h1>
-      <p class="tagline">Healthy Plant, Happy Life</p>
+      <h1 ref="titleEl" class="title">Welcome to YourView</h1>
+      <p ref="taglineEl" class="tagline">Healthy Plant, Happy Life</p>
     </header>
 
+    <!-- button -->
     <section class="cta">
-      <button class="btn" @click="goNext" aria-label="Continue to app">
+      <button ref="btnEl" class="btn" @click="goNext">
         <span>Continue</span>
         <span class="arrow">→</span>
       </button>
 
-      <p class="legal">
+      <!-- term -->
+      <p ref="legalEl" class="legal">
         By clicking Continue, you agree to our
         <RouterLink to="/terms">Terms of Service</RouterLink>
         and confirm you have read our
@@ -20,94 +29,121 @@
       </p>
     </section>
 
-    <figure class="illustration">
-      <!-- Use your own SVG/PNG. Keep it wide; it’ll scale responsively -->
-      <!-- <img src="@/assets/landing-garden.png" alt="" aria-hidden="true" /> -->
+    <!-- bush - bottom art-->
+    <figure ref="illustrationEl" class="illustration">
+      <img src="@/assets/intro_bush.png" alt="" aria-hidden="true" />
     </figure>
   </main>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-const router = useRouter()
+import { onMounted, ref } from "vue"
+import { gsap } from "gsap"
+import { useRouter } from "vue-router"
 
-// Change '/home' to wherever you want to land after this screen
-const goNext = () => router.push({ name: 'intro-step1' })
+const router = useRouter()
+const goNext = () => router.push({ name: "intro-step1" })
+
+// Refs
+const titleEl = ref(null)
+const taglineEl = ref(null)
+const btnEl = ref(null)
+const legalEl = ref(null)
+const illustrationEl = ref(null)
+const logoEl = ref(null)
+
+onMounted(() => {
+  const tl = gsap.timeline({ defaults: { ease: "power3.out" } })
+
+  tl.from(logoEl.value, { y: -10, opacity: 0, duration: 0.5, delay: 0.3 })
+    .from(titleEl.value, { y: -50, opacity: 0, duration: 1 })
+    .from(taglineEl.value, { y: 20, opacity: 0, duration: 0.8 }, "-=0.5")
+    .from(btnEl.value, { scale: 1, opacity: 0, duration: 0.6, ease: "power3.out", clearProps: "transform" }, "-=0.3")
+    .from(legalEl.value, { opacity: 0, duration: 0.8 }, "-=0.3")
+    .from(illustrationEl.value, { opacity: 0, y: 40, duration: 1 }, "-=0.6")
+})
+
 </script>
 
-<style scoped>
-
+<style>
 .landing {
+  position: relative;
   min-height: 100dvh;
   background: #f8fef6;
   display: grid;
-  grid-template-rows: 1fr auto auto; /* brand | cta | art */
-  align-items: start;
+  grid-template-rows: 1fr auto auto auto 1fr;
+  align-items: center;
   justify-items: center;
   padding: clamp(16px, 3vw, 32px);
   text-align: center;
-}
-
-.brand {
-  margin-top: clamp(16px, 6vh, 80px);
+  gap: var(--spacing-between-elements, clamp(16px, 4vh, 40px));
 }
 
 .logo {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  margin-inline: auto;
+  grid-row: 2;
+  margin: 0;
+}
+
+.logo img {
+  width: clamp(96px, 14vw, 180px);
+  height: auto;
   display: block;
+}
+
+.brand {
+  grid-row: 3;
+  margin: 0;
 }
 
 h1 {
   color: #103713;
   font-size: clamp(28px, 6vw, 56px);
   line-height: 1.1;
-  margin: 14px 0 8px;
+  margin: 10px 0 8px;
   font-weight: 800;
 }
 
 .tagline {
-  color: #103713;;
+  color: #103713;
   opacity: 0.9;
   font-weight: 600;
   margin: 0;
 }
 
 .cta {
+  grid-row: 4;
+  margin: 0;
   margin-top: clamp(24px, 5vh, 40px);
   max-width: 680px;
   width: min(92vw, 520px);
 }
 
+/* Fixed, solid button */
 .btn {
-  width: 100%;
+  width: min(520px, 86vw);
   height: 48px;
-  border-radius: 10px;
   border: none;
+  border-radius: 12px;
   background: #103731;
-  color: white;
+  /* solid color (no var()) */
+  color: #fff;
+  /* readable text */
+  font-weight: 700;
   font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  box-shadow:
-    0 2px 0 rgba(0, 0, 0, 0.08),
-    0 8px 24px rgba(27, 77, 57, 0.25);
-  transition:
-    transform 0.06s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08), 0 10px 24px rgba(17, 60, 46, 0.22);
+  transition: background 0.15s ease, transform 0.06s ease;
 }
 
 .btn:hover {
-  background: #1d6358;
+  background: #0c2a22;
+  transform: scale(1.05);
 }
+
 .btn:active {
   transform: translateY(1px);
 }
@@ -133,25 +169,17 @@ h1 {
 
 .illustration {
   width: 100%;
-  max-width: 880px;
-  margin: clamp(24px, 6vh, 56px) auto 0;
+  max-width: none;
+  margin: 0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
 }
 
 .illustration img {
   width: 100%;
   height: auto;
   display: block;
-  object-fit: contain;
-  /* Optional rounded corners for a friendly feel: */
-  border-radius: 8px;
+  object-fit: cover;
 }
-
-/* Make sure everything stays centered on very tall screens */
-@media (min-height: 900px) and (min-width: 768px) {
-  .landing {
-    grid-template-rows: 1.2fr auto 1fr;
-  }
-}
-
-.brand { margin-top: 21vh; }  
 </style>
