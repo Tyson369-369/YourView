@@ -22,13 +22,15 @@
         </p>
 
         <!-- cta button -->
-        <button class="btn" @click="goNext('upload')">
-          <span>Upload My Window View</span>
-        </button>
+        <div class = "cta-button"> 
+          <button class="btn" @click="goNext('upload')">
+            <span>Upload My Window View</span>
+          </button>
 
-        <button class="btn" @click="goNext('why')">
-          <span>Find out why</span>
-        </button>
+          <button class="btn" @click="goNext('why')">
+            <span>Find out why</span>
+          </button>
+        </div>
 
       </div>
 
@@ -165,7 +167,7 @@ const goNext = (type) => {
   if (type === 'upload') {
     router.push({ name: 'upload_window' })   
   } else if (type === 'why') {
-    router.push({ name: 'intro-step1' }) 
+    window.open("https://greenlifeindustryqld.org.au/news/3-30-300-rule/", "_blank")
   }
 }
 
@@ -342,15 +344,27 @@ onMounted(() => {
   transition: opacity 0.2s linear, transform 0.2s linear;
 }
 
-.cta {
-  display: inline-block;
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: #103731;
-  color: #ffffff;
-  border-radius: 8px;
-  font-weight: 700;
-  text-decoration: none;
+.cta-button {
+  display: flex;
+  gap: 20px;               
+  justify-content: center; 
+  align-items: center;
+}
+
+.btn {
+  background: transparent;   /* transparent background */
+  color: white;              
+  border: 2px solid white;   /* white border */
+  border-radius: 8px;        /* rounded corners */
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  background: white;   /* hover effect */
+  color: black;
 }
 
 /* hero wording */
