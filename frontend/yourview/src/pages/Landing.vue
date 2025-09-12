@@ -179,7 +179,7 @@ onMounted(() => {
 
   showSplash.value = true
   setTimeout(() => { splashDone.value = true }, 1200)  // start fade
-  setTimeout(() => { showSplash.value = false }, 1700) // remove from DOM
+  setTimeout(() => { showSplash.value = false }, 1700) // remove from dom
 })
 
 // tiny fade/blur effect on scroll using CSS var (no library)
@@ -201,7 +201,7 @@ const nextEl = ref(null)
 const services = [
   {
     // first service
-    // img: new URL('@/assets/green.jpg', import.meta.url),
+    img: new URL('@/assets/our-service-window.png', import.meta.url),
     title: 'Check your green score',
     desc: 'Is your home green enough? Upload a photo and find out — trees, cover, and parks measured by the 3-30-300 rule.',
     cta: 'Upload my window',
@@ -209,7 +209,7 @@ const services = [
   },
   {
     // second service
-    // img: new URL('@/assets/suburb.jpg', import.meta.url),
+    img: new URL('@/assets/our-service-heat.png', import.meta.url),
     title: 'Check your suburb heat',
     desc: 'Is your suburb overheating? Cities lose plants, gain concrete, and lock in heat — the Urban Heat Island Effect.',
     cta: 'Check suburb heat',
@@ -217,7 +217,7 @@ const services = [
   },
   {
     // third service
-    // img: new URL('@/assets/plant.jpg', import.meta.url),
+    img: new URL('@/assets/our-service-planth-health.png', import.meta.url),
     title: 'Keep your plant alive',
     desc: 'Got a struggling plant? Snap it, get instant tips, and bring the green back into your space.',
     cta: 'Open Plant Health',
@@ -225,7 +225,7 @@ const services = [
   },
   {
     // fourth service
-    // img: new URL('@/assets/plant.jpg', import.meta.url),
+    img: new URL('@/assets/our-service-plant-suggestion.png', import.meta.url),
     title: 'Find Your Green Companion',
     desc: 'Discover 3 plants made for you. Shuffle for more and learn how to care for them with ease.',
     cta: 'My Green Picks',
@@ -234,7 +234,7 @@ const services = [
   },
   {
     // fifth service
-    // img: new URL('@/assets/plant.jpg', import.meta.url),
+    img: new URL('@/assets/our-service-ct-mel.png', import.meta.url),
     title: 'Raise your voice',
     desc: 'Your voice matters! Request more green space and vote for the next green laneway to cool our city. We want to hear from you!',
     cta: 'Contact council',
