@@ -7,8 +7,8 @@
       <!-- PHONE OVERLAY -->
       <img ref="phoneEl" class="art phone" src="@/assets/step3.png" alt="Hand holding phone" />
 
-      <h2 ref="titleEl">Your Green Score</h2>
-      <p class="sub" ref="subEl">Measured by the 3-30-300 Rule</p>
+      <h2 ref="titleEl">No Green View? You Can Change That!</h2>
+      <p class="sub" ref="subEl">plant, explore, speak up - building a greener city for all.</p>
 
       <!-- button -->
       <button ref="btnEl" class="btn" data-flip-id="continue" @click="goNext">

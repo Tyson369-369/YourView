@@ -7,8 +7,8 @@
       <!-- PHONE OVERLAY -->
       <img ref="phoneEl" class="art phone" src="@/assets/step1.png" alt="Hand holding phone" />
 
-      <h2 ref="titleEl">Snap Your Window</h2>
-      <p class="sub" ref="subEl">Reveal Your Green Score</p>
+      <h2 ref="titleEl">Are You Living in a Green Place?</h2>
+      <p class="sub" ref="subEl">Snap your window to see your 3-30-300 check</p>
 
       <!-- button -->
       <button ref="btnEl" class="btn" data-flip-id="continue" @click="goNext">
