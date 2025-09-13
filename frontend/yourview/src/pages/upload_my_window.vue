@@ -1,4 +1,5 @@
 <template>
+  <Header />
   <div class="page">
     <h1 class="title">Upload your window view</h1>
 
@@ -60,9 +61,12 @@
       </p>
     </div>
   </div>
+  <Footer />
 </template>
 
 <script setup lang="ts">
+import Header from '@/components/Header.vue'
+import Footer from '@/components/Footer.vue'
 
 const UPLOADER_URL =
   'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/upload-image';
