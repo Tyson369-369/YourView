@@ -1,5 +1,7 @@
 <template>
   <div class="page">
+    <!-- header -->
+    <Header />
     <h1 class="title">Check your plant health</h1>
 
     <form class="card" @submit.prevent="handleSubmit">
@@ -50,5 +52,12 @@
         Looks good — requirement met.
       </p>
     </div>
-  </div>
-</template>
+    <!-- footer -->
+        <Footer />
+    </div>
+    </template>
+
+    <script setup>
+    import Header from '@/components/Header.vue'
+    import Footer from '@/components/Footer.vue'
+    </script>
