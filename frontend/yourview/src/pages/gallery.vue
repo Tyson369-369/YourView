@@ -5,7 +5,7 @@
 
     <!-- Page content -->
     <main>
-      <h1>Gallery</h1>
+      <h1>Window Gallery</h1>
       <!-- Add your gallery content here -->
     </main>
 
