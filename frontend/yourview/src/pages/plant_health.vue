@@ -8,6 +8,23 @@
       </h3>
 
       <form class="card" @submit.prevent="handleSubmit">
+
+        <div v-if="result" class="status-strip">
+          <div class="status-left">
+            <div class="species" v-if="result?.species">
+              {{ result.species }}
+              <span v-if="result?.common_name" class="species-aka">({{ result.common_name }})</span>
+            </div>
+            <div class="status-big">
+              {{ displayStatus }}
+            </div>
+          </div>
+          <div class="score-box" v-if="result?.health_score">
+            <span class="score-label">Health</span>
+            <span class="score-value">{{ result.health_score }}</span>
+          </div>
+        </div>
+
         <div class="upload-box">
           <div v-if="previewUrl" class="preview inside-upload-box">
             <div>
@@ -48,24 +65,14 @@
         <p v-if="deleteInfo" class="info">{{ deleteInfo }}</p>
       </form>
 
-      <!-- Results -->
       <div v-if="result" class="card" style="margin-top:1rem;">
-        <h2 class="upload-title" style="margin-bottom:8px;">Analysis Result</h2>
+
         <ul class="kv">
-          <li v-if="result?.species">
-            <strong>Species:</strong> {{ result.species }} ({{ result.common_name }})
-          </li>
           <li v-if="result?.family">
             <strong>Family:</strong> {{ result.family }}
           </li>
           <li v-if="result?.confidence !== undefined">
             <strong>Identification confidence:</strong> {{ result.confidence }}%
-          </li>
-          <li v-if="result?.overall_status">
-            <strong>Overall status:</strong> {{ result.overall_status }}
-          </li>
-          <li v-if="result?.health_score">
-            <strong>Health score:</strong> {{ result.health_score }}
           </li>
           <li v-if="result?.confidence_level">
             <strong>Assessment confidence:</strong> {{ result.confidence_level }}
@@ -75,14 +82,24 @@
           </li>
         </ul>
 
-        <div v-if="result?.care_recommendations?.length" style="margin-top:10px;">
-          <h3 class="subtitle" style="text-align:left;">Care recommendations</h3>
-          <ul>
-            <li v-for="(rec, idx) in result.care_recommendations" :key="idx">
+
+        <div v-if="filteredCare.length" class="care-card">
+          <div class="care-title">
+            <span class="bulb" aria-hidden="true">
+
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M9 21h6v-1H9v1zm3-20C7.925 1 5 3.925 5 7c0 2.013 1.004 3.784 2.536 4.873.51.363.922.84 1.183 1.404L9 14h6l.281-.723c.26-.564.672-1.041 1.183-1.404C17.996 10.784 19 9.013 19 7c0-3.075-2.925-6-7-6zm-3 17h6v-2H9v2z"/>
+              </svg>
+            </span>
+            <span>Care recommendations</span>
+          </div>
+          <ul class="green-bullets">
+            <li v-for="(rec, idx) in filteredCare" :key="idx">
               <strong>{{ rec.category }}:</strong> {{ rec.recommendation }}
             </li>
           </ul>
         </div>
+
 
         <div v-if="result?.issues_identified?.length" style="margin-top:10px;">
           <h3 class="subtitle" style="text-align:left;">Issues identified</h3>
@@ -94,6 +111,7 @@
           </ul>
         </div>
 
+
         <div v-if="result?.healthy_reference" style="margin-top:10px;">
           <h3 class="subtitle" style="text-align:left;">Healthy reference</h3>
           <p>{{ result.healthy_reference.description }}</p>
@@ -102,6 +120,7 @@
           </ul>
         </div>
       </div>
+
     </div>
   </div>
   <Footer />
@@ -114,12 +133,11 @@ const UPLOADER_URL =
 const DELETE_URL =
   'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object';
 
-// TODO: put your plant-health-checker API URL here:
+// Your plant-health-checker API URL:
 const PLANT_ANALYZER_URL =
   'https://efmnjv0lr3.execute-api.ap-southeast-2.amazonaws.com/plant-health';
-// e.g. 'https://2piqweol0f.execute-api.ap-southeast-2.amazonaws.com/analyze'
 
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
 
@@ -134,6 +152,20 @@ const result = ref(null);
 
 // S3 target folder for plant images
 const S3_FOLDER = 'PlantHealth';
+
+// Calculation property: Display status 
+// (in large text at the lower left corner) - Prioritize the backend overall_status; otherwise, display Healthy
+const displayStatus = computed(() => {
+  const s = result.value?.overall_status;
+  return (typeof s === 'string' && s.trim()) ? s : 'Healthy';
+});
+
+// Filtered care recommendations: only show Watering, Light, Pruning
+const filteredCare = computed(() => {
+  const wanted = new Set(['Watering', 'Light', 'Pruning']);
+  const list = result.value?.care_recommendations || [];
+  return list.filter((x) => wanted.has(x?.category));
+});
 
 function onFileSelected(e) {
   const f = e.target.files?.[0];
@@ -206,7 +238,7 @@ async function handleSubmit() {
     uploadedKey    = uploadJson.key    || uploadJson.s3_key    || uploadJson.Key;
     if (!uploadedBucket || !uploadedKey) throw new Error('Upload did not return bucket/key.');
 
-    // 2) Analyze (JSON body; plant-health-checker returns Lambda-proxy)
+    // 2) Analyze (JSON body; Lambda-proxy)
     const analyzePayload = {
       bucket: uploadedBucket,
       key: uploadedKey,
@@ -233,7 +265,7 @@ async function handleSubmit() {
       family: species?.family,
       confidence: species?.confidence, // %
       overall_status: sa?.health_assessment?.overall_status,
-      health_score: sa?.health_assessment?.health_score,
+      health_score: sa?.health_assessment?.health_score, // "7/10"
       confidence_level: sa?.health_assessment?.confidence_level,
       quick_summary: sa?.health_assessment?.quick_summary,
       care_recommendations: sa?.care_recommendations || [],
@@ -305,6 +337,60 @@ async function handleSubmit() {
   background: #fff;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
+
+
+.status-strip {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border: 1px solid #bbf7d0;     /* light green border */
+  background: #ecfdf5;            /* green-50 */
+  border-radius: 14px;            /* soft rounded corners */
+}
+.status-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.species {
+  font-weight: 600;
+  color: #065f46; /* deep green */
+  font-size: 14px;
+}
+.species-aka {
+  color: #0f766e;
+  font-weight: 500;
+  margin-left: 6px;
+}
+.status-big {
+  font-weight: 800;
+  color: #059669; /* emerald-600 */
+  font-size: 26px; /* big word (Healthy) */
+  line-height: 1.1;
+}
+.score-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.score-label {
+  color: #065f46;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+}
+.score-value {
+  color: #064e3b; /* deep green */
+  font-weight: 900;
+  font-size: 28px;
+}
+
+
 .upload-box {
   width: 100%;
   background: white;
@@ -326,18 +412,42 @@ async function handleSubmit() {
   cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.2s ease;
 }
 .upload-button:hover { background: #f1f1f1; }
+.center-self { align-self: center; }
+.preview img { max-width: 100%; max-height: 250px; object-fit: contain; }
+
+
 .analyze-button {
   margin-top: 1.25rem; width: 100%; background: #103731; border: none; border-radius: 8px;
   padding: 12px; font-size: 16px; font-weight: bold; cursor: pointer; color: white;
 }
 .analyze-button:disabled { background: #b0d5cf; cursor: not-allowed; }
-.center-self { align-self: center; }
-.preview img { max-width: 100%; max-height: 250px; object-fit: contain; }
 .error { color: #b91c1c; margin-top: .75rem; }
 .info  { color: #1f2937; margin-top: .5rem; }
 .kv { list-style: none; padding: 0; margin: .5rem 0 0; }
 .kv li { margin: .2rem 0; }
 .consent { margin-top: .75rem; }
+
+
+.care-card {
+  margin-top: 14px;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  border-radius: 12px;
+  padding: 14px;
+}
+.care-title {
+  display: flex; align-items: center; gap: 8px;
+  color: #065f46; font-weight: 800; margin-bottom: 8px;
+}
+.care-title .bulb { color: #059669; display: inline-flex; }
+.green-bullets {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0;
+}
+.green-bullets li::marker { color: #059669; }
+.green-bullets li { margin: .2rem 0; }
+
 @media screen and (min-width: 1024px) {
   .container { padding: 3rem; }
   .upload-button { width: 300px; }
