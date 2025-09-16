@@ -74,32 +74,50 @@
       </div>
 
       <!-- Step 2: Address -->
-      <div v-else class="modal-body">
+      <div v-else-if="modalStep===2" class="modal-body">
         <h3 class="modal-title">Enter your address</h3>
         <input
           class="text-input"
           type="text"
           placeholder="Type your address"
-          v-model="address"
+          v-model.trim="address"
           :disabled="loading"
+          @input="onAddressInput"
+          @focus="predOpen = true"
+          @blur="onAddressBlur"
+          autocomplete="off"
         />
+        <ul v-if="predOpen && predictions.length" class="pred-list-min">
+          <li
+            v-for="p in predictions"
+            :key="(p as any).place_id || (p as any).placeId"
+            class="pred-item-min"
+            @mousedown.prevent="selectPrediction(p as any)"
+          >
+            {{ (p as any).description || (p as any).text?.text }}
+          </li>
+        </ul>
+
         <button
           class="btn primary full"
           :disabled="!address || !file || loading"
           @click="handleSeeMyScore"
         >
           <span v-if="!loading">See my score</span>
-          <span v-else>Working…</span>
+          <span v-else>Working...</span>
         </button>
 
         <p v-if="error" class="error">{{ error }}</p>
         <p v-if="deleteInfo" class="info">{{ deleteInfo }}</p>
       </div>
+
+
     </div>
   </div>
 
   <!-- Results section -->
   <div v-if="showResults" class="results">
+    
     <div class="results-grid">
       <!-- Left: uploaded image -->
       <div class="panel image-panel">
@@ -134,31 +152,48 @@
             </div>
           </div>
 
-          <!-- 30 (placeholder) -->
-          <div class="card metric">
+          <!-- 30 -->
+          <div class="card metric" :class="pass30 ? 'ok' : 'bad'">
             <div class="metric-header">
               <div class="metric-title">30</div>
-              <div class="metric-value muted">Coming soon</div>
+              <div class="metric-value">{{ canopy }}%</div>
             </div>
-            <div class="metric-sub">tree canopy near your home</div>
-            <button class="collapse-btn" disabled>
+            <div class="metric-sub">Canopy Cover</div>
+
+            <button class="collapse-btn" @click="showTips30 = !showTips30">
               See what you can do
-              <span class="chev">—</span>
+              <span class="chev">{{ showTips30 ? '▲' : '▼' }}</span>
             </button>
+            <div v-if="showTips30" class="collapse-body">
+              <ul>
+                <li v-if="pass30">Great canopy! Help maintain trees and support local greening programs.</li>
+                <li v-else>Advocate for street tree planting; consider shade trees in private yards if possible.</li>
+              </ul>
+            </div>
           </div>
 
-          <!-- 300 (placeholder) -->
-          <div class="card metric">
+          <!-- 300 -->
+          <div class="card metric" :class="pass300 ? 'ok' : 'bad'">
             <div class="metric-header">
               <div class="metric-title">300</div>
-              <div class="metric-value muted">Coming soon</div>
+              <div class="metric-value">{{ parkDistance }}m</div>
             </div>
-            <div class="metric-sub">distance to nearest green space (m)</div>
-            <button class="collapse-btn" disabled>
+            <div class="metric-sub">
+              Nearest Green Space<span v-if="nearestParkName"> — @ {{ nearestParkName }}</span>
+            </div>
+
+            <button class="collapse-btn" @click="showTips300 = !showTips300">
               See what you can do
-              <span class="chev">—</span>
+              <span class="chev">{{ showTips300 ? '▲' : '▼' }}</span>
             </button>
+            <div v-if="showTips300" class="collapse-body">
+              <ul>
+                <li v-if="pass300">Nice! Explore different entrances and paths to make regular visits easier.</li>
+                <li v-else>Find the nearest pocket park or community garden; propose pop-up green spaces.</li>
+              </ul>
+            </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -168,11 +203,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue';
+import { onMounted, onUnmounted, ref, computed, nextTick } from 'vue';
 import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
 
-
+// ===== Backend endpoints (3: upload + analyze + delete) =====
 const UPLOADER_URL =
   'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/upload-image';
 const ANALYZER_URL =
@@ -180,10 +215,12 @@ const ANALYZER_URL =
 const DELETE_URL =
   'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object';
 
-// ====== Carousel images ======
+// ===== Carousel images =====
 import img23 from '@/assets/Group 23.png';
 import img27 from '@/assets/Group 27.png';
 import img28 from '@/assets/Group 28.png';
+
+type PlacePrediction = google.maps.places.AutocompletePrediction | any;
 
 const images = [
   { src: img23, alt: 'Window 1' },
@@ -214,10 +251,9 @@ function slideClass(i: number) {
   };
 }
 
-// ====== Modal & Steps ======
+// ===== Modal & Steps =====
 const showModal = ref(false);
 const modalStep = ref<1 | 2>(1);
-const address = ref('');
 function openModal() {
   showModal.value = true;
   modalStep.value = 1;
@@ -226,7 +262,7 @@ function closeModal() {
   showModal.value = false;
 }
 
-// ====== Upload/Analyze State ======
+// ===== Upload/Analyze State (3) =====
 const file = ref<File | null>(null);
 const previewUrl = ref<string | null>(null);
 const allowShow = ref(false);
@@ -274,6 +310,156 @@ async function parseMaybeLambdaProxyResponse(res: Response) {
   return data;
 }
 
+// ===== 30/300 =====
+const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
+const SB_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+const address = ref<string>('');
+const predictions = ref<PlacePrediction[]>([]);
+const predOpen = ref<boolean>(false);
+
+const latRef = ref<number | null>(null);
+const lngRef = ref<number | null>(null);
+
+const canopy = ref<number>(0);          // 30
+const parkDistance = ref<number>(9999); // 300
+const nearestParkName = ref<string>('');
+
+const pass30 = computed(() => canopy.value >= 30);
+const pass300 = computed(() => parkDistance.value <= 300);
+
+// ===== Google Maps Loader + Autocomplete/Details =====
+let googleLoaded = false;
+let autoService: google.maps.places.AutocompleteService | null = null;
+let detailsService: google.maps.places.PlacesService | null = null;
+let sessionToken: google.maps.places.AutocompleteSessionToken | null = null;
+
+function loadGoogleMaps() {
+  return new Promise<void>((resolve, reject) => {
+    if (googleLoaded && (window as any).google) return resolve();
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=places,geometry&v=quarterly`;
+    s.async = true;
+    s.onerror = () => reject(new Error('Failed to load Google Maps JS'));
+    s.onload = () => { googleLoaded = true; resolve(); };
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureAutocomplete() {
+  await loadGoogleMaps();
+  const g = (window as any).google;
+  if (!autoService) autoService = new g.maps.places.AutocompleteService();
+  if (!detailsService) detailsService = new g.maps.places.PlacesService(document.createElement('div'));
+  if (!sessionToken) sessionToken = new g.maps.places.AutocompleteSessionToken();
+}
+
+let predTimer: number | null = null;
+function onAddressInput() {
+  error.value = null;
+  if (predTimer) window.clearTimeout(predTimer);
+  const q = address.value;
+  if (!q) { predictions.value = []; return; }
+  predTimer = window.setTimeout(() => fetchPredictions(q), 220);
+}
+
+async function fetchPredictions(q: string) {
+  try {
+    await ensureAutocomplete();
+    const g = (window as any).google;
+    autoService!.getPlacePredictions({ input: q, sessionToken: sessionToken! }, (res: any, status: any) => {
+      if (status !== g.maps.places.PlacesServiceStatus.OK || !res) {
+        predictions.value = [];
+        return;
+      }
+      predictions.value = res;
+    });
+  } catch {
+    predictions.value = [];
+  }
+}
+
+async function selectPrediction(p: PlacePrediction) {
+  try {
+    await ensureAutocomplete();
+    const g = (window as any).google;
+    const req = { placeId: (p as any).place_id || (p as any).placeId, fields: ['geometry'] };
+    detailsService!.getDetails(req as any, (place: any, status: any) => {
+      if (status !== g.maps.places.PlacesServiceStatus.OK || !place?.geometry?.location) {
+        error.value = 'Failed to resolve address location.';
+        return;
+      }
+      address.value = (p as any).description || (p as any).text?.text || address.value;
+      latRef.value = place.geometry.location.lat();
+      lngRef.value = place.geometry.location.lng();
+      predictions.value = [];
+      predOpen.value = false;
+    });
+  } catch {
+    error.value = 'Failed to resolve address.';
+  }
+}
+
+function onAddressBlur() {
+  setTimeout(() => { predOpen.value = false; }, 120);
+}
+
+// ===== 300: nearest park via Places v1 REST =====
+async function computeNearestParkDistance(lon: number, lat: number): Promise<number> {
+  const url = 'https://places.googleapis.com/v1/places:searchNearby';
+  const body = {
+    includedTypes: ['park'],
+    maxResultCount: 1,
+    locationRestriction: { circle: { center: { latitude: lat, longitude: lon }, radius: 5000 } },
+    rankPreference: 'DISTANCE',
+  };
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': GMAPS_KEY,
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.location',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error('Nearby search failed');
+  const data = await res.json();
+  const place = data.places?.[0];
+  if (!place?.location) throw new Error('No nearby park found');
+  nearestParkName.value = place.displayName?.text || 'Nearest park';
+
+  await loadGoogleMaps();
+  const g = (window as any).google;
+  const a = new g.maps.LatLng(lat, lon);
+  const b = new g.maps.LatLng(place.location.latitude, place.location.longitude);
+  const d = g.maps.geometry.spherical.computeDistanceBetween(a, b);
+  return Math.round(d);
+}
+
+// ===== 30: canopy via Supabase RPC =====
+async function getCanopy(lon: number, lat: number): Promise<number> {
+  const res = await fetch(`${SB_URL}/rest/v1/rpc/api_canopy_for_point`, {
+    method: 'POST',
+    headers: {
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ p_lon: lon, p_lat: lat }),
+  });
+  if (!res.ok) throw new Error('Canopy RPC failed');
+  const data = await res.json();
+  let canopyPct: number | null = null;
+  if (Array.isArray(data) && data.length) {
+    canopyPct = (data[0].canopy_percent ?? data[0].canopy_pct ?? data[0].canopy) as number | null;
+  } else if (data && typeof data === 'object') {
+    canopyPct = (data.canopy_percent ?? data.canopy_pct ?? data.canopy) as number | null;
+  }
+  if (canopyPct == null) throw new Error('Invalid canopy payload');
+  return Math.round(Number(canopyPct));
+}
+
 async function handleSeeMyScore() {
   error.value = null;
   deleteInfo.value = null;
@@ -282,28 +468,31 @@ async function handleSeeMyScore() {
 
   if (!file.value) { error.value = 'Please choose a JPG or PNG file.'; return; }
   if (!address.value.trim()) { error.value = 'Please enter your address.'; return; }
+  if (latRef.value == null || lngRef.value == null) {
+    error.value = 'Please pick an address from suggestions.';
+    return;
+  }
 
   loading.value = true;
   let uploadedBucket = '';
   let uploadedKey = '';
+
   try {
-    // 1) Upload
     const form = new FormData();
     form.append('file', file.value);
-    form.append('folder', 'YourWindow'); // THIS FOLDER NAME WILL APPEAR IN S3 BUCKET
+    form.append('folder', 'YourWindow');
     const up = await fetch(UPLOADER_URL, { method: 'POST', body: form });
     if (!up.ok) {
       const text = await up.text().catch(() => '');
       let detail = '';
-      try { const j = JSON.parse(text); detail = j?.detail ?? ''; } catch {}
+      try { const j = JSON.parse(text); detail = (j as any)?.detail ?? ''; } catch {}
       throw new Error(detail || `Upload failed (${up.status})`);
     }
     const upJson = await up.json();
-    uploadedBucket = upJson.bucket || upJson.s3_bucket || upJson.Bucket;
-    uploadedKey    = upJson.key    || upJson.s3_key    || upJson.Key;
+    uploadedBucket = (upJson.bucket || upJson.s3_bucket || upJson.Bucket) as string;
+    uploadedKey    = (upJson.key    || upJson.s3_key    || upJson.Key) as string;
     if (!uploadedBucket || !uploadedKey) throw new Error('Upload did not return bucket/key.');
 
-    // 2) Analyze (tree counting)
     const payload = { bucket: uploadedBucket, key: uploadedKey, include_details: true, check_compliance: true };
     const an = await fetch(ANALYZER_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -313,14 +502,13 @@ async function handleSeeMyScore() {
       const text = await an.text().catch(() => '');
       throw new Error(text || `Analyzer failed (${an.status})`);
     }
-    const analyze = await parseMaybeLambdaProxyResponse(an) ?? {};
+    const analyze = (await parseMaybeLambdaProxyResponse(an)) ?? {};
     const count =
-      analyze?.trees_counted ??
-      analyze?.tree_count ??
-      analyze?.analysis_details?.tree_count;
+      (analyze as any)?.trees_counted ??
+      (analyze as any)?.tree_count ??
+      (analyze as any)?.analysis_details?.tree_count;
     treesCount.value = (typeof count === 'number') ? count : null;
 
-    // 3) IF NO CONSENT, DELETE UPLOADED IMAGE
     if (!allowShow.value) {
       try {
         const del = await fetch(DELETE_URL, {
@@ -338,14 +526,19 @@ async function handleSeeMyScore() {
       }
     }
 
-    // 4) SHOW RESULTS
+    const lon = Number(lngRef.value);
+    const lat = Number(latRef.value);
+    const [c30, d300] = await Promise.all([
+      getCanopy(lon, lat),
+      computeNearestParkDistance(lon, lat),
+    ]);
+    canopy.value = c30;
+    parkDistance.value = d300;
+
     showResults.value = true;
     closeModal();
-    // OPT: scroll to results
-    setTimeout(() => {
-      document.querySelector('.results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
-
+    await nextTick();
+    document.querySelector('.results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (e: any) {
     error.value = e?.message || String(e);
   } finally {
@@ -355,7 +548,10 @@ async function handleSeeMyScore() {
 
 // Tips collapse
 const showTips3 = ref(false);
+const showTips30 = ref(false);
+const showTips300 = ref(false);
 </script>
+
 
 <style scoped>
 /* ===== Hero ===== */
@@ -479,7 +675,7 @@ const showTips3 = ref(false);
 /* ===== Results ===== */
 .results { max-width: 1080px; margin: 16px auto 32px; padding: 0 16px; }
 .results-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
-.panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 14px; }
+.panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 14px;  }
 .image-panel img { width: 100%; border-radius: 12px; }
 
 @media (min-width: 900px) {
@@ -503,4 +699,32 @@ const showTips3 = ref(false);
 .collapse-btn:disabled { opacity: .6; cursor: not-allowed; }
 .collapse-body { padding: 8px 4px 2px; color: #374151; }
 .chev { float: right; color: #065f46; }
+
+.autocomplete { position: relative; }
+.pred-list {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: #fff; border: 1px solid #e5e7eb;
+  border-radius: 10px; margin-top: 6px; max-height: 240px; overflow: auto; z-index: 20;
+}
+.pred-item { padding: 10px 12px; cursor: pointer; }
+.pred-item:hover { background: #f3f4f6; }
+
+.metric-card.ok { border-color:#22c55e; box-shadow:0 0 0 2px rgba(34,197,94,.15) inset; }
+.metric-card.bad { border-color:#ef4444; box-shadow:0 0 0 2px rgba(239,68,68,.12) inset; }
+
+.pred-list-min {
+  margin-top: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  max-height: 240px;
+  overflow: auto;
+}
+.pred-item-min {
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.pred-item-min:hover {
+  background: #f3f4f6;
+}
 </style>
