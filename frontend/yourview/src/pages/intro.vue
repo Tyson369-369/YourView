@@ -84,7 +84,7 @@ const goNext = async () => {
 }
 </script>
 
-<style>
+<style scoped>
 
 .landing {
   position: relative;

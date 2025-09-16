@@ -713,4 +713,8 @@ p {
   .nature-stats { grid-template-columns: 1fr; }
 }
 
+footer {
+  position: relative;
+  z-index: 2;
+}
 </style>
