@@ -11,7 +11,7 @@
     <header class="brand">
       <h1 ref="titleEl" class="title">Welcome to YourView</h1>
       <p ref="taglineEl" class="tagline">Sustainable City of Melbourne</p>
-      <p ref="taglineEl" class="tagline">“Green spaces for all”</p>
+      <p ref="taglineEl" class="tagline">Green spaces for all</p>
     </header>
 
     <!-- button -->

@@ -13,6 +13,9 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.891.0",
+    "@aws-sdk/credential-providers": "^3.891.0",
+    "@aws-sdk/s3-request-presigner": "^3.891.0",
     "@mdi/font": "^7.4.47",
     "beerslider": "^1.0.3",
     "gsap": "^3.13.0",
