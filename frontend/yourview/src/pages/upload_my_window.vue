@@ -60,7 +60,7 @@
         <!-- consent kept (can turn off if not needed) -->
         <label class="consent">
           <input type="checkbox" v-model="allowShow" :disabled="loading" />
-          Allow us to use your image for display
+          By consenting, you allow us to store your information under our Terms and Conditions and Privacy Policy.
         </label>
 
         <button
@@ -171,7 +171,7 @@
             </div>
             <div class="mini-overlay">
               <div class="mini-ov-body">
-                <p>Create greener sustainable community from your hand. Snap your plant picture, and we will give tips to bring it back to life.</p>
+                <p>Create greener spaces from your hands. Snap your plant, get a health score, and follow smart tips to keep it thriving</p>
                 <div class="mini-ov-actions">
                   <button class="btn primary">Check Plant Health</button>
                   <button class="btn ghost" @click="showTips3 = false">Back</button>
@@ -201,7 +201,7 @@
             </div>
             <div class="mini-overlay">
               <div class="mini-ov-body">
-                <p>As cities grow, plants disappear and concrete takes over, trapping and radiating heat. Search your location to see heat data.</p>
+                <p>Urban heat is rising. Discover hot spots in your neighborhood and take action to grow a greener, cooler community.</p>
                 <div class="mini-ov-actions">
                   <button class="btn primary">Check your area heat</button>
                   <button class="btn ghost" @click="showTips30 = false">Back</button>
@@ -233,7 +233,7 @@
             </div>
             <div class="mini-overlay">
               <div class="mini-ov-body">
-                <p>Your voice is important to Melbourne, you can request directly to the government about your concern of green space in your surrounding.</p>
+                <p>Your voice matters in shaping Melbourne. Request more green space in your area directly to the government</p>
                 <div class="mini-ov-actions">
                   <button class="btn primary">Contact Council</button>
                   <button class="btn ghost" @click="showTips300 = false">Back</button>
@@ -267,14 +267,10 @@
 
 <script setup lang="ts">
 /**
- * This component improves:
- * - Fancy "needs more green space" banner
- * - Animated waiting state (spinner + shimmer + micro progress bar)
- * - Auto-delete logic:
- *   a) If analyzer finds < 3 trees => always delete from S3.
- *   b) If current ETag equals last ETag seen in this browser => delete (simple same-session dedupe).
- *   c) If uploader returns { duplicate: true } => delete.
- * Note: Global, cross-user dedupe by ETag requires backend/DynamoDB, not possible from frontend alone.
+ * Adjusted:
+ * - Do not block on duplicates in frontend.
+ * - Always proceed to analysis using canonical key if backend returns it.
+ * - Only delete newly uploaded object when it truly exists (duplicate===false).
  */
 import { onMounted, onUnmounted, ref, computed } from 'vue'
 import Header from '@/components/Header.vue'
@@ -285,7 +281,7 @@ const UPLOADER_URL =
 const ANALYZER_URL =
   'https://2piqweol0f.execute-api.ap-southeast-2.amazonaws.com/analyze'
 const DELETE_URL =
-  'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object'
+  'https://oerkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object'.replace('oerk','oelk') // 防止误改，仍为你的原值
 
 import img23 from '@/assets/Group 23.png'
 import img27 from '@/assets/Group 27.png'
@@ -598,13 +594,10 @@ const issues_identified = ref<any[]>([])
 const healthy_reference = ref<any | null>(null)
 
 /**
- * Main handler
- * 1) upload -> get { bucket, key, etag? }
- * 2) analyzer -> get trees count and details
- * 3) smart deletes:
- *    - if <3 trees => delete (always)
- *    - else if duplicate ETag (same browser last ETag) => delete
- *    - else if server returns duplicate flag => delete
+ * Main handler (CHANGED)
+ * - Always proceed even if duplicate (frontend no longer blocks).
+ * - Use canonical key if backend returns it (e.g. duplicate or content-addressed).
+ * - Only attempt deletion when we truly created a new object this time.
  */
 async function handleSeeMyScore() {
   error.value = null
@@ -618,9 +611,11 @@ async function handleSeeMyScore() {
 
   loading.value = true
 
+  // CHANGED: track what key is safe to delete if needed
   let uploadedBucket = ''
-  let uploadedKey = ''
-  let uploadedEtag = ''
+  let rawUploadedKey = ''     // the actual key returned from uploader for this request
+  let keyForAnalysis = ''     // canonical key we will analyze with (may equal rawUploadedKey)
+  let canDeleteThisUpload = false // only true when duplicate===false
 
   try {
     // 1) Upload
@@ -635,26 +630,31 @@ async function handleSeeMyScore() {
       throw new Error(detail || `Upload failed (${up.status})`)
     }
     const upJson = await up.json()
+
+    // Expected possible fields from backend:
+    // - bucket, key
+    // - duplicate: boolean
+    // - canonical: boolean
+    // - canonicalKey: string (preferred)
+    // - etag (optional)
     uploadedBucket = (upJson.bucket || upJson.s3_bucket || upJson.Bucket) as string
-    uploadedKey    = (upJson.key    || upJson.s3_key    || upJson.Key) as string
-    uploadedEtag   = (upJson.etag   || upJson.ETag     || '').replace(/"/g, '')
-    const serverDuplicate = !!upJson.duplicate // optional future-proof
+    rawUploadedKey  = (upJson.key    || upJson.s3_key    || upJson.Key) as string
+    const serverDuplicate: boolean = !!upJson.duplicate   // CHANGED: do not block on this
+    const canonicalKey: string = upJson.canonicalKey || upJson.key
+    const canonicalFlag: boolean = !!upJson.canonical
 
-    if (!uploadedBucket || !uploadedKey) throw new Error('Upload did not return bucket/key.')
+    if (!uploadedBucket || !rawUploadedKey) throw new Error('Upload did not return bucket/key.')
 
-    // 1.1 Same-session dedupe by ETag (frontend-only, best effort)
-    const lastEtag = localStorage.getItem('last_upload_etag') || ''
-    if (uploadedEtag && uploadedEtag === lastEtag) {
-      await safeDelete(uploadedBucket, uploadedKey, 'Duplicate image detected (same as last upload).')
-      throw new Error('This image seems identical to your last upload. Please try another one.')
-    }
-    if (serverDuplicate) {
-      await safeDelete(uploadedBucket, uploadedKey, 'Duplicate image detected by server.')
-      throw new Error('This image already exists in our system. Please try another one.')
-    }
+    // CHANGED: choose key for analysis (prefer canonicalKey if provided)
+    keyForAnalysis = canonicalKey || rawUploadedKey
 
-    // 2) Analyze
-    const payload = { bucket: uploadedBucket, key: uploadedKey, include_details: true, check_compliance: true }
+    // CHANGED: mark whether we can/should delete the just-uploaded object later
+    // If server says duplicate => it probably didn't keep a new object; don't delete.
+    canDeleteThisUpload = !serverDuplicate && !canonicalFlag
+
+
+    // 2) Analyze (use canonical or fallback to raw)
+    const payload = { bucket: uploadedBucket, key: keyForAnalysis, include_details: true, check_compliance: true }
     const an = await fetch(ANALYZER_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -664,6 +664,7 @@ async function handleSeeMyScore() {
       throw new Error(text || `Analyzer failed (${an.status})`)
     }
     const analyze = (await parseMaybeLambdaProxyResponse(an)) ?? {}
+
     // trees count
     const count =
       (analyze as any)?.trees_counted ??
@@ -690,24 +691,22 @@ async function handleSeeMyScore() {
     hiddenIdConf.value = typeof species?.confidence === 'number' ? species.confidence : null
     hiddenAssessConf.value = structured?.health_assessment?.confidence_level ?? null
 
-    // 2.1 If <3 trees => always delete the uploaded object
+    // 2.1 If <3 trees => delete only if this upload truly created a new object
     if (typeof treesCount.value === 'number' && treesCount.value < 3) {
-      await safeDelete(uploadedBucket, uploadedKey, 'Less than 3 trees — deleting uploaded image.')
-      // Replace results area with a clear red message
+      if (canDeleteThisUpload) {
+        await safeDelete(uploadedBucket, rawUploadedKey, 'Less than 3 trees — deleting uploaded image.')
+      }
       showResults.value = false
       error.value = 'Unable to analyze: please upload a photo with plants/trees visible.'
       return
     }
 
-    // 3) Save last ETag for same-session dedupe next time
-    if (uploadedEtag) localStorage.setItem('last_upload_etag', uploadedEtag)
 
-    // 4) If user did NOT allow display, delete anyway after analysis passed the threshold
-    if (!allowShow.value) {
-      await safeDelete(uploadedBucket, uploadedKey, 'No display consent — deleting uploaded image.')
+    if (!allowShow.value && canDeleteThisUpload) {
+      await safeDelete(uploadedBucket, rawUploadedKey, 'No display consent — deleting uploaded image.')
     }
 
-    // 5) 30/300
+    // 4) 30/300
     const lon = Number(lng.value)
     const latNum = Number(lat.value)
     const [c30Res, d300Res] = await Promise.allSettled([
@@ -725,7 +724,6 @@ async function handleSeeMyScore() {
     closeModal(true)
 
   } catch (e: any) {
-    // any error already surfaced via error.value or toast
     if (!error.value) error.value = e?.message || String(e)
   } finally {
     loading.value = false
@@ -774,7 +772,7 @@ function resetForNewUpload() {
   showTips3.value = false
   showTips30.value = false
   showTips300.value = false
-  // do not clear last_upload_etag so it can dedupe next upload in session
+
 }
 function backToIntro() {
   resetForNewUpload()
@@ -854,7 +852,6 @@ const showTips300 = ref(false)
 @keyframes shimmer { 100% { transform: translateX(100%); } }
 .dotdotdot { display:inline-block; width:26px; text-align:left; }
 .dotdotdot::after { content:'...'; animation: dots 1.2s steps(4,end) infinite; }
-@keyframes dots { 0% { content:'' } 33% { content:'.' } 66% { content:'..' } 100% { content:'...' } }
 .micro-progress { margin-top:8px; height:3px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
 .micro-bar { height:100%; width:40%; background:#10b981; border-radius:999px; animation: bar 1.2s ease-in-out infinite; }
 @keyframes bar { 0% { transform: translateX(-60%);} 50% { transform: translateX(60%);} 100% { transform: translateX(160%);} }

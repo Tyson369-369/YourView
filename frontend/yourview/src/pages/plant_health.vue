@@ -4,7 +4,7 @@
     <div class="container">
       <h1 class="title">Track Your Plant Health With AI</h1>
       <h3 class="subtitle">
-        Upload a photo and describe your plant — we’ll check how it’s doing and provide personalized care recommendations
+        Create greener spaces from your hands. Snap your plant, get a health score, and follow smart tips to keep it thriving
       </h3>
 
       <form class="card" @submit.prevent="handleSubmit">
@@ -24,7 +24,6 @@
             <span class="score-value">{{ result.health_score }}</span>
           </div>
         </div>
-
 
         <div class="upload-box">
           <div v-if="previewUrl" class="preview inside-upload-box">
@@ -48,7 +47,6 @@
           </div>
         </div>
 
-
         <button class="analyze-button" :disabled="!file || loading">
           <span v-if="!loading" class="btn-content">
             <img src="@/assets/icon_analyze.png" width="16" alt="Analyze Icon" />
@@ -62,7 +60,6 @@
 
         <p v-if="error" class="error">{{ error }}</p>
       </form>
-
 
       <div v-if="lowConfidence" class="card warn-card">
         <p class="warn-big">Unable to analyze. Please upload photos of the plants.</p>
@@ -159,11 +156,12 @@
 </template>
 
 <script setup>
-/** === Replace these with your real endpoints === */
+// === Your endpoints ===
 const UPLOADER_URL =
   'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/upload-image';
 const DELETE_URL =
   'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object';
+// NOTE: This API uses HTTP API with $default stage (no "/default" in URL)
 const PLANT_ANALYZER_URL =
   'https://efmnjv0lr3.execute-api.ap-southeast-2.amazonaws.com/plant-health';
 
@@ -171,25 +169,24 @@ import { computed, ref } from 'vue';
 import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
 
-const LOW_CONFIDENCE_THRESHOLD = 10; // ≤10% is considered unanalyzable and should be deleted
+const LOW_CONFIDENCE_THRESHOLD = 10; // ≤10% => not analyzable
 
 // state
 const file = ref(null);
 const previewUrl = ref(null);
 const loading = ref(false);
 const error = ref(null);
-// const deleteInfo = ref(null); // 
-const allowShow = ref(false);   // If you don't want it to be deleted by default, change it to true
+const allowShow = ref(false);   // If you want to always keep uploads, set true
 const result = ref(null);
 const lowConfidence = ref(false);
 
-const openCare = ref(true);     // The first paragraph is expanded by default
-const openMore = ref(false);    // The second paragraph is collapsed by default
+const openCare = ref(true);     // First accordion expanded by default
+const openMore = ref(false);    // Second accordion collapsed by default
 
-// S3 folder name
+// S3 folder for plant-health feature
 const S3_FOLDER = 'PlantHealth';
 
-// Display overall status, default to "Healthy" if missing/empty
+// Display overall status with fallback
 const displayStatus = computed(() => {
   const s = result.value?.overall_status;
   return (typeof s === 'string' && s.trim()) ? s : 'Healthy';
@@ -236,13 +233,53 @@ function resetPreview() {
   lowConfidence.value = false;
 }
 
-async function parseMaybeLambdaProxyResponse(res) {
-  const data = await res.json().catch(() => null);
-  if (!data) return null;
-  if ('statusCode' in data && 'body' in data && typeof data.body === 'string') {
-    try { return JSON.parse(data.body); } catch { return data; }
+/**
+ * Robust parser for API Gateway/Lambda responses.
+ * - Handles: raw JSON, proxy envelope {statusCode, body}, double-encoded body,
+ *   and text/plain responses that contain JSON as text.
+ */
+async function parseSmartApiGatewayResponse(res) {
+  const text = await res.text();
+
+  // Helper to JSON.parse safely
+  const tryParse = (s) => {
+    try { return JSON.parse(s); } catch { return null; }
+  };
+
+  // Case A: plain JSON
+  let data = tryParse(text);
+  if (data && typeof data === 'object') {
+    // Proxy envelope: { statusCode, body: "<json-string>" }
+    if ('statusCode' in data && typeof data.body === 'string') {
+      const inner = tryParse(data.body);
+      if (inner) return inner;
+      return data; // fallback: return outer envelope
+    }
+    return data;
   }
-  return data;
+
+  // Case B: JSON string wrapped in quotes (e.g. "\"{...}\"")
+  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+    const unquoted = text.slice(1, -1).replace(/\\"/g, '"').replace(/\\n/g, '\n');
+    data = tryParse(unquoted);
+    if (data) {
+      if ('statusCode' in data && typeof data.body === 'string') {
+        const inner = tryParse(data.body);
+        if (inner) return inner;
+      }
+      return data;
+    }
+  }
+
+  // Case C: object-like with a "body" string
+  const maybeBodyObj = tryParse(text);
+  if (maybeBodyObj && typeof maybeBodyObj === 'object' && typeof maybeBodyObj.body === 'string') {
+    const inner = tryParse(maybeBodyObj.body);
+    if (inner) return inner;
+  }
+
+  // Give up
+  return null;
 }
 
 async function handleSubmit() {
@@ -260,7 +297,7 @@ async function handleSubmit() {
   let uploadedKey = '';
 
   try {
-    // 1) Upload S3 uploader
+    // 1) Upload to S3 via uploader
     const form = new FormData();
     form.append('file', file.value);
     form.append('folder', S3_FOLDER);
@@ -274,10 +311,14 @@ async function handleSubmit() {
     }
     const uploadJson = await uploadRes.json();
     uploadedBucket = uploadJson.bucket || uploadJson.s3_bucket || uploadJson.Bucket;
-    uploadedKey    = uploadJson.key    || uploadJson.s3_key    || uploadJson.Key;
+
+    // Prefer canonicalKey if backend returns it (content-addressed dedupe)
+    const canonicalKey = uploadJson.canonicalKey || uploadJson.key || uploadJson.s3_key || uploadJson.Key;
+    uploadedKey = canonicalKey;
+
     if (!uploadedBucket || !uploadedKey) throw new Error('Upload did not return bucket/key.');
 
-    // 2) plant-health-checker
+    // 2) Call plant-health-checker
     const analyzePayload = {
       bucket: uploadedBucket,
       key: uploadedKey,
@@ -289,35 +330,58 @@ async function handleSubmit() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(analyzePayload)
     });
-    if (!analyzeRes.ok) {
-      const text = await analyzeRes.text().catch(() => '');
-      throw new Error(text || `Analyzer failed (${analyzeRes.status})`);
-    }
-    const analyze = await parseMaybeLambdaProxyResponse(analyzeRes) ?? {};
 
-    // 3) Normalize result
-    const species = analyze?.analysis_result?.species_identification;
-    const sa = analyze?.analysis_result?.structured_analysis;
+    // If HTTP status isn't OK, show detailed message
+    if (!analyzeRes.ok) {
+      const txt = await analyzeRes.text().catch(() => '');
+      throw new Error(`Plant analyzer error ${analyzeRes.status}: ${txt || analyzeRes.statusText}`);
+    }
+
+    // Robust parsing (covers proxy envelope/double-encoded/etc.)
+    const analyze = await parseSmartApiGatewayResponse(analyzeRes);
+    if (!analyze || typeof analyze !== 'object') {
+      throw new Error('Plant analyzer returned an unreadable payload.');
+    }
+
+    // If backend encodes error into analysis_result.status === "error", surface it
+    const ar = analyze?.analysis_result;
+    if (!ar || ar.status === 'error') {
+      const msg = (ar && ar.error) ? String(ar.error) : 'Plant analyzer failed.';
+      if (/quota|429/i.test(msg)) {
+        error.value = 'Analysis service hit its daily quota. Please try again later.';
+      } else {
+        error.value = msg;
+      }
+      return;
+    }
+
+    // Extract expected fields (strictly match your agreed schema)
+    const species = ar?.species_identification;
+    const sa = ar?.structured_analysis;
+    if (!sa || !sa.health_assessment) {
+      throw new Error('Analyzer response missing structured_analysis.health_assessment');
+    }
+
     const normalized = {
       species: species?.species,
       common_name: species?.common_name,
       family: species?.family,
       confidence: species?.confidence, // %
       overall_status: sa?.health_assessment?.overall_status,
-      health_score: sa?.health_assessment?.health_score, // "7/10"
+      health_score: sa?.health_assessment?.health_score, // e.g. "7/10"
       confidence_level: sa?.health_assessment?.confidence_level,
       quick_summary: sa?.health_assessment?.quick_summary,
-      care_recommendations: sa?.care_recommendations || [],
-      issues_identified: sa?.issues_identified || [],
+      care_recommendations: Array.isArray(sa?.care_recommendations) ? sa.care_recommendations : [],
+      issues_identified: Array.isArray(sa?.issues_identified) ? sa.issues_identified : [],
       healthy_reference: sa?.healthy_reference || null,
       raw: analyze
     };
 
-    // 3.1) Low confidence: show warning + forced delete
+    // 3) Low-confidence branch (optional deletion)
     const conf = typeof normalized.confidence === 'number' ? normalized.confidence : NaN;
     if (!Number.isNaN(conf) && conf <= LOW_CONFIDENCE_THRESHOLD) {
       lowConfidence.value = true;
-      // FORCE DELETE
+      // FORCE DELETE the uploaded file
       try {
         await fetch(DELETE_URL, {
           method: 'POST',
@@ -327,15 +391,14 @@ async function handleSubmit() {
       } catch (e) {
         console.warn('Forced delete (low-confidence) errored', e);
       }
-      
       result.value = null;
       return;
     }
 
-    // 3.2) Normal case: show result
+    // 4) Normal case: render result
     result.value = normalized;
 
-    // 4) If not allowed to show, delete the uploaded file
+    // 5) Optional: delete uploaded file if user does not allow keeping it
     if (!allowShow.value) {
       try {
         await fetch(DELETE_URL, {
@@ -500,7 +563,6 @@ async function handleSubmit() {
 .subhead { color: #065f46; font-weight: 800; margin-bottom: 6px; }
 .disc { list-style: disc; padding-left: 20px; margin: 0; }
 .mt8 { margin-top: 8px; }
-
 
 .disclaimer {
   margin-top: 12px;
