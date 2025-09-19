@@ -11,10 +11,10 @@ const routes = [
   { path: '/heatmap', name: 'heatmap', component: () => import('@/pages/heatmap.vue') },
   { path: '/plant_health', name: 'plant_health', component: () => import('@/pages/plant_health.vue') },
   { path: '/gallery', name: 'gallery', component: () => import('@/pages/gallery.vue') },
-  { path: '/upload', name: 'upload', component: () => import('@/pages/upload.vue') }
+  { path: '/upload', name: 'upload', component: () => import('@/pages/upload.vue') },
 ]
 
 export default createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes,
 })
