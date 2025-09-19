@@ -23,7 +23,15 @@
 
     <div class="cta-row">
       <button class="btn primary" @click="openModal">Upload My Window</button>
-      <button class="btn secondary">What is 3-30-300</button>
+            <a
+        class="btn secondary"
+        href="https://planitgeo.com/library/urban-forestrys-new-benchmark-the-330300-rule/"
+        target="_blank"
+        rel="noopener"
+      >
+        What is 3-30-300
+      </a>
+
     </div>
   </div>
 
@@ -60,7 +68,7 @@
         <!-- consent kept (can turn off if not needed) -->
         <label class="consent">
           <input type="checkbox" v-model="allowShow" :disabled="loading" />
-          Allow us to use your image for display
+          By consenting, you allow us to store your information under our Terms and Conditions and Privacy Policy.
         </label>
 
         <button
@@ -145,6 +153,20 @@
       </div>
     </div>
 
+    <!-- Insufficient trees note (shows even when <3 trees) -->
+    <div
+      v-if="typeof treesCount === 'number' && treesCount < 3"
+      class="alert warn"
+      role="status"
+      aria-live="polite"
+      style="margin: 10px 0 6px;"
+    >
+      <strong>Not enough trees:</strong>
+      We detected {{ treesCount }} {{ treesCount === 1 ? 'tree' : 'trees' }}.
+      The uploaded image has been removed from our storage. Results below are for reference only.
+    </div>
+
+
     <div class="results-grid">
       <div class="panel image-panel">
         <img :src="previewUrl" alt="Your window" />
@@ -171,7 +193,7 @@
             </div>
             <div class="mini-overlay">
               <div class="mini-ov-body">
-                <p>Create greener sustainable community from your hand. Snap your plant picture, and we will give tips to bring it back to life.</p>
+                <p>Create greener spaces from your hands. Snap your plant, get a health score, and follow smart tips to keep it thriving</p>
                 <div class="mini-ov-actions">
                   <button class="btn primary">Check Plant Health</button>
                   <button class="btn ghost" @click="showTips3 = false">Back</button>
@@ -201,7 +223,7 @@
             </div>
             <div class="mini-overlay">
               <div class="mini-ov-body">
-                <p>As cities grow, plants disappear and concrete takes over, trapping and radiating heat. Search your location to see heat data.</p>
+                <p>Urban heat is rising. Discover hot spots in your neighborhood and take action to grow a greener, cooler community.</p>
                 <div class="mini-ov-actions">
                   <button class="btn primary">Check your area heat</button>
                   <button class="btn ghost" @click="showTips30 = false">Back</button>
@@ -233,7 +255,7 @@
             </div>
             <div class="mini-overlay">
               <div class="mini-ov-body">
-                <p>Your voice is important to Melbourne, you can request directly to the government about your concern of green space in your surrounding.</p>
+                <p>Your voice matters in shaping Melbourne. Request more green space in your area directly to the government</p>
                 <div class="mini-ov-actions">
                   <button class="btn primary">Contact Council</button>
                   <button class="btn ghost" @click="showTips300 = false">Back</button>
@@ -267,14 +289,10 @@
 
 <script setup lang="ts">
 /**
- * This component improves:
- * - Fancy "needs more green space" banner
- * - Animated waiting state (spinner + shimmer + micro progress bar)
- * - Auto-delete logic:
- *   a) If analyzer finds < 3 trees => always delete from S3.
- *   b) If current ETag equals last ETag seen in this browser => delete (simple same-session dedupe).
- *   c) If uploader returns { duplicate: true } => delete.
- * Note: Global, cross-user dedupe by ETag requires backend/DynamoDB, not possible from frontend alone.
+ * Adjusted:
+ * - Do not block on duplicates in frontend.
+ * - Always proceed to analysis using canonical key if backend returns it.
+ * - Only delete newly uploaded object when it truly exists (duplicate===false).
  */
 import { onMounted, onUnmounted, ref, computed } from 'vue'
 import Header from '@/components/Header.vue'
@@ -285,11 +303,11 @@ const UPLOADER_URL =
 const ANALYZER_URL =
   'https://2piqweol0f.execute-api.ap-southeast-2.amazonaws.com/analyze'
 const DELETE_URL =
-  'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object'
+  'https://oerkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object'.replace('oerk','oelk')
 
-import img23 from '@/assets/Group 23.png'
-import img27 from '@/assets/Group 27.png'
-import img28 from '@/assets/Group 28.png'
+import img23 from '@/assets/image 130.png'
+import img27 from '@/assets/image 131.png'
+import img28 from '@/assets/image 132.png'
 
 // carousel
 const images = [
@@ -598,14 +616,12 @@ const issues_identified = ref<any[]>([])
 const healthy_reference = ref<any | null>(null)
 
 /**
- * Main handler
- * 1) upload -> get { bucket, key, etag? }
- * 2) analyzer -> get trees count and details
- * 3) smart deletes:
- *    - if <3 trees => delete (always)
- *    - else if duplicate ETag (same browser last ETag) => delete
- *    - else if server returns duplicate flag => delete
+ * Main handler (CHANGED)
+ * - Always proceed even if duplicate (frontend no longer blocks).
+ * - Use canonical key if backend returns it (e.g. duplicate or content-addressed).
+ * - Only attempt deletion when we truly created a new object this time.
  */
+
 async function handleSeeMyScore() {
   error.value = null
   treesCount.value = null
@@ -621,11 +637,12 @@ async function handleSeeMyScore() {
   let uploadedBucket = ''
   let uploadedKey = ''
   let uploadedEtag = ''
+  let didDelete = false   // NEW: track if we've already deleted to avoid double-delete
 
   try {
     // 1) Upload
     const form = new FormData()
-    form.append('file', file.value)
+    form.append('file', file.value!)
     form.append('folder', 'YourWindow')
     const up = await fetch(UPLOADER_URL, { method: 'POST', body: form })
     if (!up.ok) {
@@ -638,20 +655,14 @@ async function handleSeeMyScore() {
     uploadedBucket = (upJson.bucket || upJson.s3_bucket || upJson.Bucket) as string
     uploadedKey    = (upJson.key    || upJson.s3_key    || upJson.Key) as string
     uploadedEtag   = (upJson.etag   || upJson.ETag     || '').replace(/"/g, '')
-    const serverDuplicate = !!upJson.duplicate // optional future-proof
+    const serverDuplicate = !!upJson.duplicate
 
     if (!uploadedBucket || !uploadedKey) throw new Error('Upload did not return bucket/key.')
 
-    // 1.1 Same-session dedupe by ETag (frontend-only, best effort)
+
     const lastEtag = localStorage.getItem('last_upload_etag') || ''
-    if (uploadedEtag && uploadedEtag === lastEtag) {
-      await safeDelete(uploadedBucket, uploadedKey, 'Duplicate image detected (same as last upload).')
-      throw new Error('This image seems identical to your last upload. Please try another one.')
-    }
-    if (serverDuplicate) {
-      await safeDelete(uploadedBucket, uploadedKey, 'Duplicate image detected by server.')
-      throw new Error('This image already exists in our system. Please try another one.')
-    }
+    const isDuplicate = !!uploadedEtag && uploadedEtag === lastEtag
+    const shouldDeleteAsDuplicate = isDuplicate || serverDuplicate
 
     // 2) Analyze
     const payload = { bucket: uploadedBucket, key: uploadedKey, include_details: true, check_compliance: true }
@@ -664,47 +675,40 @@ async function handleSeeMyScore() {
       throw new Error(text || `Analyzer failed (${an.status})`)
     }
     const analyze = (await parseMaybeLambdaProxyResponse(an)) ?? {}
-    // trees count
     const count =
       (analyze as any)?.trees_counted ??
       (analyze as any)?.tree_count ??
       (analyze as any)?.analysis_details?.tree_count
     treesCount.value = (typeof count === 'number') ? count : null
 
-    // parse details for UI cards/accordions
+
     const details = (analyze as any)?.analysis_details || {}
     const structured = (analyze as any)?.analysis_result?.structured_analysis || {}
-
     summaryTextUI.value = details?.description || structured?.health_assessment?.quick_summary || ''
-
     const care = structured?.care_recommendations || []
     const wanted = new Set(['Watering', 'Light', 'Pruning'])
     filteredCare.value = Array.isArray(care) ? care.filter((x: any) => wanted.has(x?.category)) : []
-
     issues_identified.value = structured?.issues_identified || []
     healthy_reference.value = structured?.healthy_reference || null
-
-    // hidden fields
     const species = (analyze as any)?.analysis_result?.species_identification || {}
     hiddenFamily.value = species?.family ?? null
     hiddenIdConf.value = typeof species?.confidence === 'number' ? species.confidence : null
     hiddenAssessConf.value = structured?.health_assessment?.confidence_level ?? null
 
-    // 2.1 If <3 trees => always delete the uploaded object
-    if (typeof treesCount.value === 'number' && treesCount.value < 3) {
-      await safeDelete(uploadedBucket, uploadedKey, 'Less than 3 trees — deleting uploaded image.')
-      // Replace results area with a clear red message
-      showResults.value = false
-      error.value = 'Unable to analyze: please upload a photo with plants/trees visible.'
-      return
+    // 2.1 NEW: If <=3 trees => ALWAYS delete, but DO NOT return; keep showing results
+    if (typeof treesCount.value === 'number' && treesCount.value <= 3 && !didDelete) {
+      await safeDelete(uploadedBucket, uploadedKey, 'Fewer than required trees — deleting uploaded image.')
+      didDelete = true
+
     }
 
-    // 3) Save last ETag for same-session dedupe next time
+    // 3) Save last ETag (session-only dedupe hint)
     if (uploadedEtag) localStorage.setItem('last_upload_etag', uploadedEtag)
 
-    // 4) If user did NOT allow display, delete anyway after analysis passed the threshold
-    if (!allowShow.value) {
+    // 4) If user did NOT allow display, delete — but only if we haven't already deleted
+    if (!didDelete && !allowShow.value) {
       await safeDelete(uploadedBucket, uploadedKey, 'No display consent — deleting uploaded image.')
+      didDelete = true
     }
 
     // 5) 30/300
@@ -720,17 +724,17 @@ async function handleSeeMyScore() {
     }
     if (d300Res.status === 'fulfilled') parkDistance.value = d300Res.value
 
-    // show results
+    // 6) Show results (even if trees <= 3)
     showResults.value = true
     closeModal(true)
 
   } catch (e: any) {
-    // any error already surfaced via error.value or toast
     if (!error.value) error.value = e?.message || String(e)
   } finally {
     loading.value = false
   }
 }
+
 
 async function safeDelete(bucket: string, key: string, reason?: string) {
   try {
@@ -774,7 +778,7 @@ function resetForNewUpload() {
   showTips3.value = false
   showTips30.value = false
   showTips300.value = false
-  // do not clear last_upload_etag so it can dedupe next upload in session
+
 }
 function backToIntro() {
   resetForNewUpload()
@@ -854,7 +858,6 @@ const showTips300 = ref(false)
 @keyframes shimmer { 100% { transform: translateX(100%); } }
 .dotdotdot { display:inline-block; width:26px; text-align:left; }
 .dotdotdot::after { content:'...'; animation: dots 1.2s steps(4,end) infinite; }
-@keyframes dots { 0% { content:'' } 33% { content:'.' } 66% { content:'..' } 100% { content:'...' } }
 .micro-progress { margin-top:8px; height:3px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
 .micro-bar { height:100%; width:40%; background:#10b981; border-radius:999px; animation: bar 1.2s ease-in-out infinite; }
 @keyframes bar { 0% { transform: translateX(-60%);} 50% { transform: translateX(60%);} 100% { transform: translateX(160%);} }
@@ -957,4 +960,13 @@ const showTips300 = ref(false)
 .toast.success{ background:#065f46; }
 .toast.error{ background:#7f1d1d; }
 .toast.info{ background:#111827; }
+.alert.warn{
+  border: 1px solid #f59e0b;
+  background: #fffbeb;
+  color: #78350f;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
 </style>
