@@ -23,7 +23,15 @@
 
     <div class="cta-row">
       <button class="btn primary" @click="openModal">Upload My Window</button>
-      <button class="btn secondary">What is 3-30-300</button>
+            <a
+        class="btn secondary"
+        href="https://planitgeo.com/library/urban-forestrys-new-benchmark-the-330300-rule/"
+        target="_blank"
+        rel="noopener"
+      >
+        What is 3-30-300
+      </a>
+
     </div>
   </div>
 
@@ -144,6 +152,20 @@
         <button class="btn secondary" @click="backToIntro">Back</button>
       </div>
     </div>
+
+    <!-- Insufficient trees note (shows even when <3 trees) -->
+    <div
+      v-if="typeof treesCount === 'number' && treesCount < 3"
+      class="alert warn"
+      role="status"
+      aria-live="polite"
+      style="margin: 10px 0 6px;"
+    >
+      <strong>Not enough trees:</strong>
+      We detected {{ treesCount }} {{ treesCount === 1 ? 'tree' : 'trees' }}.
+      The uploaded image has been removed from our storage. Results below are for reference only.
+    </div>
+
 
     <div class="results-grid">
       <div class="panel image-panel">
@@ -281,11 +303,11 @@ const UPLOADER_URL =
 const ANALYZER_URL =
   'https://2piqweol0f.execute-api.ap-southeast-2.amazonaws.com/analyze'
 const DELETE_URL =
-  'https://oerkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object'.replace('oerk','oelk') // 防止误改，仍为你的原值
+  'https://oerkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object'.replace('oerk','oelk')
 
-import img23 from '@/assets/Group 23.png'
-import img27 from '@/assets/Group 27.png'
-import img28 from '@/assets/Group 28.png'
+import img23 from '@/assets/image 130.png'
+import img27 from '@/assets/image 131.png'
+import img28 from '@/assets/image 132.png'
 
 // carousel
 const images = [
@@ -599,6 +621,7 @@ const healthy_reference = ref<any | null>(null)
  * - Use canonical key if backend returns it (e.g. duplicate or content-addressed).
  * - Only attempt deletion when we truly created a new object this time.
  */
+
 async function handleSeeMyScore() {
   error.value = null
   treesCount.value = null
@@ -611,16 +634,15 @@ async function handleSeeMyScore() {
 
   loading.value = true
 
-  // CHANGED: track what key is safe to delete if needed
   let uploadedBucket = ''
-  let rawUploadedKey = ''     // the actual key returned from uploader for this request
-  let keyForAnalysis = ''     // canonical key we will analyze with (may equal rawUploadedKey)
-  let canDeleteThisUpload = false // only true when duplicate===false
+  let uploadedKey = ''
+  let uploadedEtag = ''
+  let didDelete = false   // NEW: track if we've already deleted to avoid double-delete
 
   try {
     // 1) Upload
     const form = new FormData()
-    form.append('file', file.value)
+    form.append('file', file.value!)
     form.append('folder', 'YourWindow')
     const up = await fetch(UPLOADER_URL, { method: 'POST', body: form })
     if (!up.ok) {
@@ -630,31 +652,20 @@ async function handleSeeMyScore() {
       throw new Error(detail || `Upload failed (${up.status})`)
     }
     const upJson = await up.json()
-
-    // Expected possible fields from backend:
-    // - bucket, key
-    // - duplicate: boolean
-    // - canonical: boolean
-    // - canonicalKey: string (preferred)
-    // - etag (optional)
     uploadedBucket = (upJson.bucket || upJson.s3_bucket || upJson.Bucket) as string
-    rawUploadedKey  = (upJson.key    || upJson.s3_key    || upJson.Key) as string
-    const serverDuplicate: boolean = !!upJson.duplicate   // CHANGED: do not block on this
-    const canonicalKey: string = upJson.canonicalKey || upJson.key
-    const canonicalFlag: boolean = !!upJson.canonical
+    uploadedKey    = (upJson.key    || upJson.s3_key    || upJson.Key) as string
+    uploadedEtag   = (upJson.etag   || upJson.ETag     || '').replace(/"/g, '')
+    const serverDuplicate = !!upJson.duplicate
 
-    if (!uploadedBucket || !rawUploadedKey) throw new Error('Upload did not return bucket/key.')
-
-    // CHANGED: choose key for analysis (prefer canonicalKey if provided)
-    keyForAnalysis = canonicalKey || rawUploadedKey
-
-    // CHANGED: mark whether we can/should delete the just-uploaded object later
-    // If server says duplicate => it probably didn't keep a new object; don't delete.
-    canDeleteThisUpload = !serverDuplicate && !canonicalFlag
+    if (!uploadedBucket || !uploadedKey) throw new Error('Upload did not return bucket/key.')
 
 
-    // 2) Analyze (use canonical or fallback to raw)
-    const payload = { bucket: uploadedBucket, key: keyForAnalysis, include_details: true, check_compliance: true }
+    const lastEtag = localStorage.getItem('last_upload_etag') || ''
+    const isDuplicate = !!uploadedEtag && uploadedEtag === lastEtag
+    const shouldDeleteAsDuplicate = isDuplicate || serverDuplicate
+
+    // 2) Analyze
+    const payload = { bucket: uploadedBucket, key: uploadedKey, include_details: true, check_compliance: true }
     const an = await fetch(ANALYZER_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -664,49 +675,43 @@ async function handleSeeMyScore() {
       throw new Error(text || `Analyzer failed (${an.status})`)
     }
     const analyze = (await parseMaybeLambdaProxyResponse(an)) ?? {}
-
-    // trees count
     const count =
       (analyze as any)?.trees_counted ??
       (analyze as any)?.tree_count ??
       (analyze as any)?.analysis_details?.tree_count
     treesCount.value = (typeof count === 'number') ? count : null
 
-    // parse details for UI cards/accordions
+
     const details = (analyze as any)?.analysis_details || {}
     const structured = (analyze as any)?.analysis_result?.structured_analysis || {}
-
     summaryTextUI.value = details?.description || structured?.health_assessment?.quick_summary || ''
-
     const care = structured?.care_recommendations || []
     const wanted = new Set(['Watering', 'Light', 'Pruning'])
     filteredCare.value = Array.isArray(care) ? care.filter((x: any) => wanted.has(x?.category)) : []
-
     issues_identified.value = structured?.issues_identified || []
     healthy_reference.value = structured?.healthy_reference || null
-
-    // hidden fields
     const species = (analyze as any)?.analysis_result?.species_identification || {}
     hiddenFamily.value = species?.family ?? null
     hiddenIdConf.value = typeof species?.confidence === 'number' ? species.confidence : null
     hiddenAssessConf.value = structured?.health_assessment?.confidence_level ?? null
 
-    // 2.1 If <3 trees => delete only if this upload truly created a new object
-    if (typeof treesCount.value === 'number' && treesCount.value < 3) {
-      if (canDeleteThisUpload) {
-        await safeDelete(uploadedBucket, rawUploadedKey, 'Less than 3 trees — deleting uploaded image.')
-      }
-      showResults.value = false
-      error.value = 'Unable to analyze: please upload a photo with plants/trees visible.'
-      return
+    // 2.1 NEW: If <=3 trees => ALWAYS delete, but DO NOT return; keep showing results
+    if (typeof treesCount.value === 'number' && treesCount.value <= 3 && !didDelete) {
+      await safeDelete(uploadedBucket, uploadedKey, 'Fewer than required trees — deleting uploaded image.')
+      didDelete = true
+
     }
 
+    // 3) Save last ETag (session-only dedupe hint)
+    if (uploadedEtag) localStorage.setItem('last_upload_etag', uploadedEtag)
 
-    if (!allowShow.value && canDeleteThisUpload) {
-      await safeDelete(uploadedBucket, rawUploadedKey, 'No display consent — deleting uploaded image.')
+    // 4) If user did NOT allow display, delete — but only if we haven't already deleted
+    if (!didDelete && !allowShow.value) {
+      await safeDelete(uploadedBucket, uploadedKey, 'No display consent — deleting uploaded image.')
+      didDelete = true
     }
 
-    // 4) 30/300
+    // 5) 30/300
     const lon = Number(lng.value)
     const latNum = Number(lat.value)
     const [c30Res, d300Res] = await Promise.allSettled([
@@ -719,7 +724,7 @@ async function handleSeeMyScore() {
     }
     if (d300Res.status === 'fulfilled') parkDistance.value = d300Res.value
 
-    // show results
+    // 6) Show results (even if trees <= 3)
     showResults.value = true
     closeModal(true)
 
@@ -729,6 +734,7 @@ async function handleSeeMyScore() {
     loading.value = false
   }
 }
+
 
 async function safeDelete(bucket: string, key: string, reason?: string) {
   try {
@@ -954,4 +960,13 @@ const showTips300 = ref(false)
 .toast.success{ background:#065f46; }
 .toast.error{ background:#7f1d1d; }
 .toast.info{ background:#111827; }
+.alert.warn{
+  border: 1px solid #f59e0b;
+  background: #fffbeb;
+  color: #78350f;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
 </style>
