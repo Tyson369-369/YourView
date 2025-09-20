@@ -50,6 +50,10 @@
       <!-- Step 1: choose photo + consent -->
       <div v-if="modalStep===1" class="modal-body">
         <h3 class="modal-title">Upload a photo</h3>
+        <p class="modal-subnote">
+  We assume your upload relates to a CBD suburb or intended area.
+  Uploading an incorrect picture may lead to misleading results.
+</p>
         <div class="upload-box">
           <div v-if="previewUrl" class="preview">
             <img :src="previewUrl" alt="preview" />
@@ -68,8 +72,11 @@
         <!-- consent kept (can turn off if not needed) -->
         <label class="consent">
           <input type="checkbox" v-model="allowShow" :disabled="loading" />
-          By consenting, you allow us to store your information under our Terms and Conditions and Privacy Policy.
+          <span class="modal-subnote">
+            By consenting, you allow us to store your information under our Terms and Conditions and Privacy Policy.
+          </span>
         </label>
+
 
         <button
           class="fab-next"
@@ -195,7 +202,10 @@
               <div class="mini-ov-body">
                 <p>Create greener spaces from your hands. Snap your plant, get a health score, and follow smart tips to keep it thriving</p>
                 <div class="mini-ov-actions">
-                  <button class="btn primary">Check Plant Health</button>
+                  <RouterLink class="btn primary" :to="{ name: 'plant_health' }">
+  Check Plant Health
+</RouterLink>
+
                   <button class="btn ghost" @click="showTips3 = false">Back</button>
                 </div>
               </div>
@@ -225,7 +235,9 @@
               <div class="mini-ov-body">
                 <p>Urban heat is rising. Discover hot spots in your neighborhood and take action to grow a greener, cooler community.</p>
                 <div class="mini-ov-actions">
-                  <button class="btn primary">Check your area heat</button>
+                  <RouterLink class="btn primary" :to="{ name: 'heatmap' }">
+  Check your area heat
+</RouterLink>
                   <button class="btn ghost" @click="showTips30 = false">Back</button>
                 </div>
               </div>
@@ -257,7 +269,15 @@
               <div class="mini-ov-body">
                 <p>Your voice matters in shaping Melbourne. Request more green space in your area directly to the government</p>
                 <div class="mini-ov-actions">
-                  <button class="btn primary">Contact Council</button>
+<a
+  class="btn primary"
+  href="https://services.melbourne.vic.gov.au/report/treemaintenance"
+  target="_blank"
+  rel="noopener"
+>
+  Contact Council
+</a>
+
                   <button class="btn ghost" @click="showTips300 = false">Back</button>
                 </div>
               </div>
@@ -637,10 +657,10 @@ async function handleSeeMyScore() {
   let uploadedBucket = ''
   let uploadedKey = ''
   let uploadedEtag = ''
-  let didDelete = false   // NEW: track if we've already deleted to avoid double-delete
+  let didDelete = false // NEW: avoid double-deletion
 
   try {
-    // 1) Upload
+    // 1) Upload to S3 (keep the object; do NOT delete before analysis)
     const form = new FormData()
     form.append('file', file.value!)
     form.append('folder', 'YourWindow')
@@ -656,15 +676,14 @@ async function handleSeeMyScore() {
     uploadedKey    = (upJson.key    || upJson.s3_key    || upJson.Key) as string
     uploadedEtag   = (upJson.etag   || upJson.ETag     || '').replace(/"/g, '')
     const serverDuplicate = !!upJson.duplicate
-
     if (!uploadedBucket || !uploadedKey) throw new Error('Upload did not return bucket/key.')
 
-
+    // (Optional) mark duplicate, but DO NOT delete yet (delete after analysis)
     const lastEtag = localStorage.getItem('last_upload_etag') || ''
     const isDuplicate = !!uploadedEtag && uploadedEtag === lastEtag
     const shouldDeleteAsDuplicate = isDuplicate || serverDuplicate
 
-    // 2) Analyze
+    // 2) Analyze (needs the S3 object to exist)
     const payload = { bucket: uploadedBucket, key: uploadedKey, include_details: true, check_compliance: true }
     const an = await fetch(ANALYZER_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -675,13 +694,15 @@ async function handleSeeMyScore() {
       throw new Error(text || `Analyzer failed (${an.status})`)
     }
     const analyze = (await parseMaybeLambdaProxyResponse(an)) ?? {}
+
+    // Tree count extraction
     const count =
       (analyze as any)?.trees_counted ??
       (analyze as any)?.tree_count ??
       (analyze as any)?.analysis_details?.tree_count
     treesCount.value = (typeof count === 'number') ? count : null
 
-
+    // Parse other fields for UI (keep your original parsing)
     const details = (analyze as any)?.analysis_details || {}
     const structured = (analyze as any)?.analysis_result?.structured_analysis || {}
     summaryTextUI.value = details?.description || structured?.health_assessment?.quick_summary || ''
@@ -690,28 +711,35 @@ async function handleSeeMyScore() {
     filteredCare.value = Array.isArray(care) ? care.filter((x: any) => wanted.has(x?.category)) : []
     issues_identified.value = structured?.issues_identified || []
     healthy_reference.value = structured?.healthy_reference || null
+
     const species = (analyze as any)?.analysis_result?.species_identification || {}
     hiddenFamily.value = species?.family ?? null
     hiddenIdConf.value = typeof species?.confidence === 'number' ? species.confidence : null
     hiddenAssessConf.value = structured?.health_assessment?.confidence_level ?? null
 
-    // 2.1 NEW: If <=3 trees => ALWAYS delete, but DO NOT return; keep showing results
-    if (typeof treesCount.value === 'number' && treesCount.value <= 3 && !didDelete) {
-      await safeDelete(uploadedBucket, uploadedKey, 'Fewer than required trees — deleting uploaded image.')
+    // 2.1 NEW: enforce deletion when tree count < 3 (even if user allowed storage)
+    if (typeof treesCount.value === 'number' && treesCount.value < 3 && !didDelete) {
+      await safeDelete(uploadedBucket, uploadedKey, 'Not enough trees — deleting uploaded image.')
       didDelete = true
-
+      // Do NOT return; still show the results with a warning/flag if you like
     }
 
-    // 3) Save last ETag (session-only dedupe hint)
+    // 2.2 Delete duplicate after analysis (optional policy)
+    if (!didDelete && shouldDeleteAsDuplicate) {
+      await safeDelete(uploadedBucket, uploadedKey, 'Duplicate image — deleting the new copy.')
+      didDelete = true
+    }
+
+    // 3) Save last ETag for next-time duplicate hint
     if (uploadedEtag) localStorage.setItem('last_upload_etag', uploadedEtag)
 
-    // 4) If user did NOT allow display, delete — but only if we haven't already deleted
+    // 4) If user did NOT allow display, delete — but only if not already deleted above
     if (!didDelete && !allowShow.value) {
       await safeDelete(uploadedBucket, uploadedKey, 'No display consent — deleting uploaded image.')
       didDelete = true
     }
 
-    // 5) 30/300
+    // 5) 30/300 KPIs
     const lon = Number(lng.value)
     const latNum = Number(lat.value)
     const [c30Res, d300Res] = await Promise.allSettled([
@@ -724,7 +752,7 @@ async function handleSeeMyScore() {
     }
     if (d300Res.status === 'fulfilled') parkDistance.value = d300Res.value
 
-    // 6) Show results (even if trees <= 3)
+    // 6) Show results (even if tree count < 3)
     showResults.value = true
     closeModal(true)
 
@@ -734,6 +762,7 @@ async function handleSeeMyScore() {
     loading.value = false
   }
 }
+
 
 
 async function safeDelete(bucket: string, key: string, reason?: string) {
@@ -967,6 +996,12 @@ const showTips300 = ref(false)
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
+}
+.modal-subnote{
+  margin: 2px 0 12px;
+  color: #6b7280;          /* muted gray */
+  font-size: 12px;         /* small text */
+  line-height: 1.4;
 }
 
 </style>
