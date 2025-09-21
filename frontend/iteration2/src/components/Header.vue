@@ -11,7 +11,7 @@
         <router-link to="/upload_window" class="nav-link" active-class="active">Upload My Window</router-link>
         <router-link to="/heatmap" class="nav-link" active-class="active">Suburb Heat</router-link>
         <router-link to="/plant_health" class="nav-link" active-class="active">Plant Health</router-link>
-        <router-link to="/gallery" class="nav-link" active-class="active">Window Gallery</router-link>
+        <!-- <router-link to="/gallery" class="nav-link" active-class="active">Window Gallery</router-link> -->
       </nav>
 
       <!-- Mobile menu button -->
