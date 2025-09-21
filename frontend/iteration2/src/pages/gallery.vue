@@ -1,10 +1,22 @@
 <template>
+  <h1>
+    the feature is still developing
+  </h1>
+</template>
+
+
+
+
+
+
+
+<!-- <template>
   <div class="page-wrapper">
     <!-- Header -->
-    <Header />
+<Header />
 
-    <!-- Page content -->
-    <main>
+<!-- Page content -->
+<main>
       <h1 class="title">Window Gallery</h1>
 
       <!-- Grid -->
@@ -27,9 +39,9 @@
       <button v-if="token && !loading" class="btn" @click="fetchPage(false)">Load more</button>
     </main>
 
-    <!-- Footer -->
-    <Footer />
-  </div>
+<!-- Footer -->
+<Footer />
+</div>
 </template>
 
 <script setup>
@@ -130,8 +142,18 @@ main {
   gap: 14px;
   grid-template-columns: 1fr;
 }
-@media (min-width: 680px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 980px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+@media (min-width: 680px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 980px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
 
 .card {
   background: #fff;
@@ -140,6 +162,7 @@ main {
   overflow: hidden;
   min-height: 220px;
 }
+
 .card img {
   width: 100%;
   height: auto;
@@ -150,13 +173,19 @@ main {
 
 /* skeleton */
 .skel {
-  background: linear-gradient(90deg,#eee 25%,#f6f6f6 50%,#eee 75%);
+  background: linear-gradient(90deg, #eee 25%, #f6f6f6 50%, #eee 75%);
   background-size: 200% 100%;
   animation: sh 1.1s infinite;
 }
+
 @keyframes sh {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .btn {
@@ -171,5 +200,8 @@ main {
   cursor: pointer;
 }
 
-.err { color: #b91c1c; margin-top: 10px; }
-</style>
+.err {
+  color: #b91c1c;
+  margin-top: 10px;
+}
+</style> -->
