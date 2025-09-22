@@ -583,8 +583,18 @@ async function computeNearestParkDistance(lon: number, latNum: number): Promise<
   return Math.round(d)
 }
 // suburb-based canopy API (assumes selectedSuburb is available)
-async function getCanopy(lon: number, latNum: number): Promise<{ pct: number; area?: string | null }> {
-  const selectedSuburb = canopyArea.value || addressShort.value || '' // fallback
+async function getCanopyBySuburb(rawAddress: string): Promise<{ pct: number; area?: string | null }> {
+
+  const suburb = (rawAddress || '')
+    .split(',')[0]                       // "Southbank, VIC 3006" -> "Southbank"
+    .replace(/\b(VIC|NSW|QLD|TAS|SA|WA|NT|ACT)\b/gi, '')
+    .replace(/\d+/g, '')
+    .trim();
+
+  if (!suburb) {
+    throw new Error('No suburb parsed from address');
+  }
+
   const res = await fetch(`${SB_URL}/rest/v1/rpc/get_canopy_cover_by_suburb`, {
     method: 'POST',
     headers: {
@@ -592,14 +602,32 @@ async function getCanopy(lon: number, latNum: number): Promise<{ pct: number; ar
       Authorization: `Bearer ${SB_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ suburb: selectedSuburb })
-  })
-  if (!res.ok) throw new Error('Canopy RPC failed')
-  // Expecting: { canopy_pct, sa2_name }
-  const { canopy_pct, sa2_name } = await res.json()
-  if (!Number.isFinite(canopy_pct)) throw new Error('Invalid canopy payload')
-  return { pct: Math.round(canopy_pct), area: sa2_name }
+    body: JSON.stringify({ suburb }) 
+  });
+
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error(`Canopy RPC HTTP ${res.status} ${t || ''}`);
+  }
+
+
+  const data = await res.json();
+  const row = Array.isArray(data) ? data[0] : data;
+
+  if (!row) {
+    throw new Error('No canopy data for this suburb');
+  }
+
+  const pct = Number(row.canopy_pct);
+  const area = row.sa2_name ?? null;
+
+  if (!Number.isFinite(pct)) {
+    throw new Error('Invalid canopy payload');
+  }
+
+  return { pct: Math.round(pct), area };
 }
+
 
 // toast
 const toastVisible = ref(false)
@@ -736,9 +764,10 @@ async function handleSeeMyScore() {
     const lon = Number(lng.value)
     const latNum = Number(lat.value)
     const [c30Res, d300Res] = await Promise.allSettled([
-      getCanopy(lon, latNum),
+      getCanopyBySuburb(address.value),   
       computeNearestParkDistance(lon, latNum)
-    ])
+    ]);
+    
     if (c30Res.status === 'fulfilled') {
       canopy.value = c30Res.value.pct
       canopyArea.value = c30Res.value.area || ''
