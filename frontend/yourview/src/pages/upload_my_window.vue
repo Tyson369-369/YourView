@@ -598,7 +598,7 @@ async function computeNearestParkDistance(lon: number, latNum: number): Promise<
   const d = g.maps.geometry.spherical.computeDistanceBetween(a, b)
   return Math.round(d)
 }
-async function getCanopyBySuburb(suburb: string): Promise<{ pct: number; area?: string | null }> {
+async function getCanopy(suburb: string): Promise<{ pct: number; area?: string | null }> {
   const res = await fetch(`${SB_URL}/rest/v1/rpc/get_canopy_cover_by_suburb`, {
     method: 'POST',
     headers: {
@@ -607,17 +607,22 @@ async function getCanopyBySuburb(suburb: string): Promise<{ pct: number; area?: 
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ suburb })
-  });
-
-  const data = await res.json();
-  if (!res.ok || !data || data.length === 0) {
-    return { pct: 0, area: null };
+  })
+  if (!res.ok) throw new Error('Canopy RPC failed')
+  const data = await res.json()
+  const pick = (obj: any, keys: string[]) => keys.map(k => obj?.[k]).find(v => v != null)
+  let pct: number | null = null
+  let area: string | null = null
+  if (Array.isArray(data) && data.length) {
+    const row = data[0]
+    pct  = Number(pick(row, ['canopy_percent','canopy_pct','canopy']))
+    area = pick(row, ['area_name','region','suburb','lga','locality','area','area_text']) ?? null
+  } else if (data && typeof data === 'object') {
+    pct  = Number(pick(data, ['canopy_percent','canopy_pct','canopy']))
+    area = pick(data, ['area_name','region','suburb','lga','locality','area','area_text']) ?? null
   }
-
-  return {
-    pct: data[0].canopy_pct || 0,
-    area: data[0].sa2_name || null
-  };
+  if (!Number.isFinite(pct)) throw new Error('Invalid canopy payload')
+  return { pct: Math.round(pct!), area }
 }
 
 // toast
@@ -746,18 +751,8 @@ async function handleSeeMyScore() {
     // 5) 30/300
     const lon = Number(lng.value)
     const latNum = Number(lat.value)
-    // Extract suburb from address before calling getCanopyBySuburb
-    let suburbStr = ''
-    if (address.value) {
-      const parts = address.value.split(',')
-      if (parts.length >= 2) {
-        suburbStr = parts[1].trim().replace(/\s+VIC.*$/i, '')
-      } else {
-        suburbStr = address.value.trim()
-      }
-    }
     const [c30Res, d300Res] = await Promise.allSettled([
-      getCanopyBySuburb(suburbStr),
+      getCanopy(lon, latNum),
       computeNearestParkDistance(lon, latNum)
     ])
     if (c30Res.status === 'fulfilled') {
@@ -1030,4 +1025,3 @@ const showTips300 = ref(false)
 }
 
 </style>
-
