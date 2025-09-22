@@ -1,32 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getCanopyCoverBySuburb } from '@/services/canopyService'
-
-// Helper to clean suburb from address string
-function cleanSuburb(rawAddress) {
-  const parts = rawAddress.split(',')
-  if (parts.length >= 2) {
-    return parts[1].trim().replace(/\s+VIC.*$/i, '') // strips ' VIC' or ' VIC, Australia'
-  }
-  return rawAddress.trim()
-}
-
-const suburb = ref('Carlton')  // Replace with dynamic suburb if needed
-const canopy = ref(null)
-const error = ref(null)
-
-onMounted(async () => {
-  // Use the actual address variable if available, otherwise fallback to suburb.value
-  // For demonstration, using suburb.value as rawAddress, but replace as needed
-  const rawAddress = suburb.value // Replace with userAddressFromMap.value or similar if available
-  const cleanedSuburb = cleanSuburb(rawAddress)
-  const result = await getCanopyCoverBySuburb(cleanedSuburb)
-  if (result) {
-    canopy.value = result.canopy_pct?.toFixed(1)
-  } else {
-    error.value = 'Currently, we are able to show canopy cover only for City of Melbourne suburbs. We will get the data for other suburbs soon!'
-  }
-})
+// (No longer used: old suburb-based canopy cover lookup and cleanSuburb helper)
 </script>
 <template>
   <Header />
@@ -315,7 +288,10 @@ onMounted(async () => {
     <p v-if="canopy !== null" class="percent">{{ canopy }}%</p>
     <p v-else-if="error">{{ error }}</p>
     <p v-else>Loading...</p>
-    <p>from your area — {{ suburb }}</p>
+    <p>
+      from your area
+      <template v-if="canopyArea"> — {{ canopyArea }}</template>
+    </p>
   </div>
 
   <!-- toast -->
@@ -598,31 +574,24 @@ async function computeNearestParkDistance(lon: number, latNum: number): Promise<
   const d = g.maps.geometry.spherical.computeDistanceBetween(a, b)
   return Math.round(d)
 }
-async function getCanopy(suburb: string): Promise<{ pct: number; area?: string | null }> {
-  const res = await fetch(`${SB_URL}/rest/v1/rpc/get_canopy_cover_by_suburb`, {
+// New canopy lookup by coordinates
+async function getCanopy(lon: number, latNum: number): Promise<{ pct: number; area?: string | null }> {
+  const res = await fetch(`${SB_URL}/rest/v1/rpc/get_canopy_cover_by_sub`, {
     method: 'POST',
     headers: {
       apikey: SB_KEY,
       Authorization: `Bearer ${SB_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ suburb })
+    body: JSON.stringify({ p_lon: lon, p_lat: latNum })
   })
   if (!res.ok) throw new Error('Canopy RPC failed')
   const data = await res.json()
-  const pick = (obj: any, keys: string[]) => keys.map(k => obj?.[k]).find(v => v != null)
-  let pct: number | null = null
-  let area: string | null = null
-  if (Array.isArray(data) && data.length) {
-    const row = data[0]
-    pct  = Number(pick(row, ['canopy_percent','canopy_pct','canopy']))
-    area = pick(row, ['area_name','region','suburb','lga','locality','area','area_text']) ?? null
-  } else if (data && typeof data === 'object') {
-    pct  = Number(pick(data, ['canopy_percent','canopy_pct','canopy']))
-    area = pick(data, ['area_name','region','suburb','lga','locality','area','area_text']) ?? null
+  const row = Array.isArray(data) ? data[0] : data
+  return {
+    pct: Number(row?.canopy_pct ?? 0),
+    area: row?.sa2_name21 ?? null
   }
-  if (!Number.isFinite(pct)) throw new Error('Invalid canopy payload')
-  return { pct: Math.round(pct!), area }
 }
 
 // toast
