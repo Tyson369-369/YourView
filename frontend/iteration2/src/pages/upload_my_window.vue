@@ -418,6 +418,7 @@ async function parseMaybeLambdaProxyResponse(res: Response) {
 }
 
 // places + canopy + park (same as before)
+
 const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 const SB_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
@@ -581,31 +582,23 @@ async function computeNearestParkDistance(lon: number, latNum: number): Promise<
   const d = g.maps.geometry.spherical.computeDistanceBetween(a, b)
   return Math.round(d)
 }
+// suburb-based canopy API (assumes selectedSuburb is available)
 async function getCanopy(lon: number, latNum: number): Promise<{ pct: number; area?: string | null }> {
-  const res = await fetch(`${SB_URL}/rest/v1/rpc/api_canopy_for_point`, {
+  const selectedSuburb = canopyArea.value || addressShort.value || '' // fallback
+  const res = await fetch(`${SB_URL}/rest/v1/rpc/get_canopy_cover_by_suburb`, {
     method: 'POST',
     headers: {
       apikey: SB_KEY,
       Authorization: `Bearer ${SB_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ p_lon: lon, p_lat: latNum })
+    body: JSON.stringify({ suburb: selectedSuburb })
   })
   if (!res.ok) throw new Error('Canopy RPC failed')
-  const data = await res.json()
-  const pick = (obj: any, keys: string[]) => keys.map(k => obj?.[k]).find(v => v != null)
-  let pct: number | null = null
-  let area: string | null = null
-  if (Array.isArray(data) && data.length) {
-    const row = data[0]
-    pct  = Number(pick(row, ['canopy_percent','canopy_pct','canopy']))
-    area = pick(row, ['area_name','region','suburb','lga','locality','area','area_text']) ?? null
-  } else if (data && typeof data === 'object') {
-    pct  = Number(pick(data, ['canopy_percent','canopy_pct','canopy']))
-    area = pick(data, ['area_name','region','suburb','lga','locality','area','area_text']) ?? null
-  }
-  if (!Number.isFinite(pct)) throw new Error('Invalid canopy payload')
-  return { pct: Math.round(pct!), area }
+  // Expecting: { canopy_pct, sa2_name }
+  const { canopy_pct, sa2_name } = await res.json()
+  if (!Number.isFinite(canopy_pct)) throw new Error('Invalid canopy payload')
+  return { pct: Math.round(canopy_pct), area: sa2_name }
 }
 
 // toast
@@ -695,7 +688,7 @@ async function handleSeeMyScore() {
     }
     const analyze = (await parseMaybeLambdaProxyResponse(an)) ?? {}
 
-    // Tree count extraction
+    // Tree count extraction.
     const count =
       (analyze as any)?.trees_counted ??
       (analyze as any)?.tree_count ??
