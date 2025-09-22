@@ -1,3 +1,6 @@
+<script setup>
+// (No longer used: old suburb-based canopy cover lookup and cleanSuburb helper)
+</script>
 <template>
   <Header />
 
@@ -50,10 +53,6 @@
       <!-- Step 1: choose photo + consent -->
       <div v-if="modalStep===1" class="modal-body">
         <h3 class="modal-title">Upload a photo</h3>
-        <p class="modal-subnote">
-  We assume your upload relates to a CBD suburb or intended area.
-  Uploading an incorrect picture may lead to misleading results.
-</p>
         <div class="upload-box">
           <div v-if="previewUrl" class="preview">
             <img :src="previewUrl" alt="preview" />
@@ -72,11 +71,8 @@
         <!-- consent kept (can turn off if not needed) -->
         <label class="consent">
           <input type="checkbox" v-model="allowShow" :disabled="loading" />
-          <span class="modal-subnote">
-            By consenting, you allow us to store your information under our Terms and Conditions and Privacy Policy.
-          </span>
+          By consenting, you allow us to store your information under our Terms and Conditions and Privacy Policy.
         </label>
-
 
         <button
           class="fab-next"
@@ -202,10 +198,7 @@
               <div class="mini-ov-body">
                 <p>Create greener spaces from your hands. Snap your plant, get a health score, and follow smart tips to keep it thriving</p>
                 <div class="mini-ov-actions">
-                  <RouterLink class="btn primary" :to="{ name: 'plant_health' }">
-  Check Plant Health
-</RouterLink>
-
+                  <button class="btn primary">Check Plant Health</button>
                   <button class="btn ghost" @click="showTips3 = false">Back</button>
                 </div>
               </div>
@@ -235,9 +228,7 @@
               <div class="mini-ov-body">
                 <p>Urban heat is rising. Discover hot spots in your neighborhood and take action to grow a greener, cooler community.</p>
                 <div class="mini-ov-actions">
-                  <RouterLink class="btn primary" :to="{ name: 'heatmap' }">
-  Check your area heat
-</RouterLink>
+                  <button class="btn primary">Check your area heat</button>
                   <button class="btn ghost" @click="showTips30 = false">Back</button>
                 </div>
               </div>
@@ -269,15 +260,7 @@
               <div class="mini-ov-body">
                 <p>Your voice matters in shaping Melbourne. Request more green space in your area directly to the government</p>
                 <div class="mini-ov-actions">
-<a
-  class="btn primary"
-  href="https://services.melbourne.vic.gov.au/report/treemaintenance"
-  target="_blank"
-  rel="noopener"
->
-  Contact Council
-</a>
-
+                  <button class="btn primary">Contact Council</button>
                   <button class="btn ghost" @click="showTips300 = false">Back</button>
                 </div>
               </div>
@@ -300,6 +283,16 @@
   </div>
 
   <Footer />
+
+  <div class="canopy-card">
+    <p v-if="canopy !== null" class="percent">{{ canopy }}%</p>
+    <p v-else-if="error">{{ error }}</p>
+    <p v-else>Loading...</p>
+    <p>
+      from your area
+      <template v-if="canopyArea"> — {{ canopyArea }}</template>
+    </p>
+  </div>
 
   <!-- toast -->
   <div class="toast" :class="[toastVisible ? 'on' : '', toastType]" role="status" aria-live="polite">
@@ -418,7 +411,6 @@ async function parseMaybeLambdaProxyResponse(res: Response) {
 }
 
 // places + canopy + park (same as before)
-
 const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 const SB_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
@@ -582,52 +574,33 @@ async function computeNearestParkDistance(lon: number, latNum: number): Promise<
   const d = g.maps.geometry.spherical.computeDistanceBetween(a, b)
   return Math.round(d)
 }
-// suburb-based canopy API (assumes selectedSuburb is available)
-async function getCanopyBySuburb(rawAddress: string): Promise<{ pct: number; area?: string | null }> {
-
-  const suburb = (rawAddress || '')
-    .split(',')[0]                       // "Southbank, VIC 3006" -> "Southbank"
-    .replace(/\b(VIC|NSW|QLD|TAS|SA|WA|NT|ACT)\b/gi, '')
-    .replace(/\d+/g, '')
-    .trim();
-
-  if (!suburb) {
-    throw new Error('No suburb parsed from address');
-  }
-
-  const res = await fetch(`${SB_URL}/rest/v1/rpc/get_canopy_cover_by_suburb`, {
+// New canopy lookup by coordinates
+async function getCanopy(lon: number, latNum: number): Promise<{ pct: number; area?: string | null }> {
+  const res = await fetch(`${SB_URL}/rest/v1/rpc/get_canopy_cover_by_sub`, {
     method: 'POST',
     headers: {
       apikey: SB_KEY,
       Authorization: `Bearer ${SB_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ suburb }) 
-  });
+    body: JSON.stringify({ p_lon: lon, p_lat: latNum })
+  })
+  if (!res.ok) throw new Error('Canopy RPC failed')
+  const data = await res.json()
+  let payload: any = null
 
-  if (!res.ok) {
-    const t = await res.text().catch(() => '');
-    throw new Error(`Canopy RPC HTTP ${res.status} ${t || ''}`);
+  if (Array.isArray(data)) {
+    // RPC JSONB result is wrapped under the function name
+    payload = data[0]?.get_canopy_cover_by_sub ?? data[0]
+  } else {
+    payload = data.get_canopy_cover_by_sub ?? data
   }
 
-
-  const data = await res.json();
-  const row = Array.isArray(data) ? data[0] : data;
-
-  if (!row) {
-    throw new Error('No canopy data for this suburb');
+  return {
+    pct: Number(payload?.canopy_pct ?? 0),
+    area: payload?.sa2_name21 ?? null
   }
-
-  const pct = Number(row.canopy_pct);
-  const area = row.sa2_name ?? null;
-
-  if (!Number.isFinite(pct)) {
-    throw new Error('Invalid canopy payload');
-  }
-
-  return { pct: Math.round(pct), area };
 }
-
 
 // toast
 const toastVisible = ref(false)
@@ -678,10 +651,10 @@ async function handleSeeMyScore() {
   let uploadedBucket = ''
   let uploadedKey = ''
   let uploadedEtag = ''
-  let didDelete = false // NEW: avoid double-deletion
+  let didDelete = false   // NEW: track if we've already deleted to avoid double-delete
 
   try {
-    // 1) Upload to S3 (keep the object; do NOT delete before analysis)
+    // 1) Upload
     const form = new FormData()
     form.append('file', file.value!)
     form.append('folder', 'YourWindow')
@@ -697,14 +670,15 @@ async function handleSeeMyScore() {
     uploadedKey    = (upJson.key    || upJson.s3_key    || upJson.Key) as string
     uploadedEtag   = (upJson.etag   || upJson.ETag     || '').replace(/"/g, '')
     const serverDuplicate = !!upJson.duplicate
+
     if (!uploadedBucket || !uploadedKey) throw new Error('Upload did not return bucket/key.')
 
-    // (Optional) mark duplicate, but DO NOT delete yet (delete after analysis)
+
     const lastEtag = localStorage.getItem('last_upload_etag') || ''
     const isDuplicate = !!uploadedEtag && uploadedEtag === lastEtag
     const shouldDeleteAsDuplicate = isDuplicate || serverDuplicate
 
-    // 2) Analyze (needs the S3 object to exist)
+    // 2) Analyze
     const payload = { bucket: uploadedBucket, key: uploadedKey, include_details: true, check_compliance: true }
     const an = await fetch(ANALYZER_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -715,15 +689,13 @@ async function handleSeeMyScore() {
       throw new Error(text || `Analyzer failed (${an.status})`)
     }
     const analyze = (await parseMaybeLambdaProxyResponse(an)) ?? {}
-
-    // Tree count extraction.
     const count =
       (analyze as any)?.trees_counted ??
       (analyze as any)?.tree_count ??
       (analyze as any)?.analysis_details?.tree_count
     treesCount.value = (typeof count === 'number') ? count : null
 
-    // Parse other fields for UI (keep your original parsing)
+
     const details = (analyze as any)?.analysis_details || {}
     const structured = (analyze as any)?.analysis_result?.structured_analysis || {}
     summaryTextUI.value = details?.description || structured?.health_assessment?.quick_summary || ''
@@ -732,49 +704,41 @@ async function handleSeeMyScore() {
     filteredCare.value = Array.isArray(care) ? care.filter((x: any) => wanted.has(x?.category)) : []
     issues_identified.value = structured?.issues_identified || []
     healthy_reference.value = structured?.healthy_reference || null
-
     const species = (analyze as any)?.analysis_result?.species_identification || {}
     hiddenFamily.value = species?.family ?? null
     hiddenIdConf.value = typeof species?.confidence === 'number' ? species.confidence : null
     hiddenAssessConf.value = structured?.health_assessment?.confidence_level ?? null
 
-    // 2.1 NEW: enforce deletion when tree count < 3 (even if user allowed storage)
-    if (typeof treesCount.value === 'number' && treesCount.value < 3 && !didDelete) {
-      await safeDelete(uploadedBucket, uploadedKey, 'Not enough trees — deleting uploaded image.')
+    // 2.1 NEW: If <=3 trees => ALWAYS delete, but DO NOT return; keep showing results
+    if (typeof treesCount.value === 'number' && treesCount.value <= 3 && !didDelete) {
+      await safeDelete(uploadedBucket, uploadedKey, 'Fewer than required trees — deleting uploaded image.')
       didDelete = true
-      // Do NOT return; still show the results with a warning/flag if you like
+
     }
 
-    // 2.2 Delete duplicate after analysis (optional policy)
-    if (!didDelete && shouldDeleteAsDuplicate) {
-      await safeDelete(uploadedBucket, uploadedKey, 'Duplicate image — deleting the new copy.')
-      didDelete = true
-    }
-
-    // 3) Save last ETag for next-time duplicate hint
+    // 3) Save last ETag (session-only dedupe hint)
     if (uploadedEtag) localStorage.setItem('last_upload_etag', uploadedEtag)
 
-    // 4) If user did NOT allow display, delete — but only if not already deleted above
+    // 4) If user did NOT allow display, delete — but only if we haven't already deleted
     if (!didDelete && !allowShow.value) {
       await safeDelete(uploadedBucket, uploadedKey, 'No display consent — deleting uploaded image.')
       didDelete = true
     }
 
-    // 5) 30/300 KPIs
+    // 5) 30/300
     const lon = Number(lng.value)
     const latNum = Number(lat.value)
     const [c30Res, d300Res] = await Promise.allSettled([
-      getCanopyBySuburb(address.value),   
+      getCanopy(lon, latNum),
       computeNearestParkDistance(lon, latNum)
-    ]);
-    
+    ])
     if (c30Res.status === 'fulfilled') {
       canopy.value = c30Res.value.pct
       canopyArea.value = c30Res.value.area || ''
     }
     if (d300Res.status === 'fulfilled') parkDistance.value = d300Res.value
 
-    // 6) Show results (even if tree count < 3)
+    // 6) Show results (even if trees <= 3)
     showResults.value = true
     closeModal(true)
 
@@ -784,7 +748,6 @@ async function handleSeeMyScore() {
     loading.value = false
   }
 }
-
 
 
 async function safeDelete(bucket: string, key: string, reason?: string) {
@@ -844,6 +807,24 @@ const showTips300 = ref(false)
 </script>
 
 <style scoped>
+/* Canopy card styles */
+.canopy-card {
+  background: #e0f2fe;
+  border: 2px solid #38bdf8;
+  border-radius: 14px;
+  padding: 18px 14px 10px;
+  margin: 18px auto 24px;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(56,189,248,0.10);
+}
+.canopy-card .percent {
+  font-size: 32px;
+  font-weight: 900;
+  color: #0369a1;
+  margin-bottom: 4px;
+}
+
 /* ---------- hero ---------- */
 .hero {
   max-width: 980px;
@@ -1018,12 +999,6 @@ const showTips300 = ref(false)
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
-}
-.modal-subnote{
-  margin: 2px 0 12px;
-  color: #6b7280;          /* muted gray */
-  font-size: 12px;         /* small text */
-  line-height: 1.4;
 }
 
 </style>
