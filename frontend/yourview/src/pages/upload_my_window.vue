@@ -2,12 +2,25 @@
 import { ref, onMounted } from 'vue'
 import { getCanopyCoverBySuburb } from '@/services/canopyService'
 
+// Helper to clean suburb from address string
+function cleanSuburb(rawAddress) {
+  const parts = rawAddress.split(',')
+  if (parts.length >= 2) {
+    return parts[1].trim().replace(/\s+VIC.*$/i, '') // strips ' VIC' or ' VIC, Australia'
+  }
+  return rawAddress.trim()
+}
+
 const suburb = ref('Carlton')  // Replace with dynamic suburb if needed
 const canopy = ref(null)
 const error = ref(null)
 
 onMounted(async () => {
-  const result = await getCanopyCoverBySuburb(suburb.value)
+  // Use the actual address variable if available, otherwise fallback to suburb.value
+  // For demonstration, using suburb.value as rawAddress, but replace as needed
+  const rawAddress = suburb.value // Replace with userAddressFromMap.value or similar if available
+  const cleanedSuburb = cleanSuburb(rawAddress)
+  const result = await getCanopyCoverBySuburb(cleanedSuburb)
   if (result) {
     canopy.value = result.canopy_pct?.toFixed(1)
   } else {
