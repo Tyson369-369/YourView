@@ -587,10 +587,18 @@ async function getCanopy(lon: number, latNum: number): Promise<{ pct: number; ar
   })
   if (!res.ok) throw new Error('Canopy RPC failed')
   const data = await res.json()
-  const row = Array.isArray(data) ? data[0] : data
+  let payload: any = null
+
+  if (Array.isArray(data)) {
+    // RPC JSONB result is wrapped under the function name
+    payload = data[0]?.get_canopy_cover_by_sub ?? data[0]
+  } else {
+    payload = data.get_canopy_cover_by_sub ?? data
+  }
+
   return {
-    pct: Number(row?.canopy_pct ?? 0),
-    area: row?.sa2_name21 ?? null
+    pct: Number(payload?.canopy_pct ?? 0),
+    area: payload?.sa2_name21 ?? null
   }
 }
 
