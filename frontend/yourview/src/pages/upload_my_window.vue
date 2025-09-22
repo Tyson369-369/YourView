@@ -1,3 +1,15 @@
+import { ref, watch } from 'vue'
+import { getCanopyCoverBySuburb } from '@/services/canopyService'
+
+const suburb = ref('Oakleigh')  // default value, replace with dynamic later
+const canopy = ref(null)
+
+watch(suburb, async (newSuburb) => {
+  if (newSuburb) {
+    const result = await getCanopyCoverBySuburb(newSuburb)
+    canopy.value = result?.canopy_pct?.toFixed(1) || null
+  }
+}, { immediate: true })
 <template>
   <Header />
 
@@ -280,6 +292,11 @@
   </div>
 
   <Footer />
+
+  <div class="canopy-card">
+    <p class="percent">{{ canopy !== null ? `${canopy}%` : 'Loading...' }}</p>
+    <p>from your area — {{ suburb }}</p>
+  </div>
 
   <!-- toast -->
   <div class="toast" :class="[toastVisible ? 'on' : '', toastType]" role="status" aria-live="polite">
@@ -793,6 +810,24 @@ const showTips300 = ref(false)
 </script>
 
 <style scoped>
+/* Canopy card styles */
+.canopy-card {
+  background: #e0f2fe;
+  border: 2px solid #38bdf8;
+  border-radius: 14px;
+  padding: 18px 14px 10px;
+  margin: 18px auto 24px;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(56,189,248,0.10);
+}
+.canopy-card .percent {
+  font-size: 32px;
+  font-weight: 900;
+  color: #0369a1;
+  margin-bottom: 4px;
+}
+
 /* ---------- hero ---------- */
 .hero {
   max-width: 980px;
