@@ -1,15 +1,20 @@
-import { ref, watch } from 'vue'
+<script setup>
+import { ref, onMounted } from 'vue'
 import { getCanopyCoverBySuburb } from '@/services/canopyService'
 
-const suburb = ref('Oakleigh')  // default value, replace with dynamic later
+const suburb = ref('Carlton')  // Replace with dynamic suburb if needed
 const canopy = ref(null)
+const error = ref(null)
 
-watch(suburb, async (newSuburb) => {
-  if (newSuburb) {
-    const result = await getCanopyCoverBySuburb(newSuburb)
-    canopy.value = result?.canopy_pct?.toFixed(1) || null
+onMounted(async () => {
+  const result = await getCanopyCoverBySuburb(suburb.value)
+  if (result) {
+    canopy.value = result.canopy_pct?.toFixed(1)
+  } else {
+    error.value = 'Currently, we are able to show canopy cover only for City of Melbourne suburbs. We will get the data for other suburbs soon!'
   }
-}, { immediate: true })
+})
+</script>
 <template>
   <Header />
 
@@ -294,7 +299,9 @@ watch(suburb, async (newSuburb) => {
   <Footer />
 
   <div class="canopy-card">
-    <p class="percent">{{ canopy !== null ? `${canopy}%` : 'Loading...' }}</p>
+    <p v-if="canopy !== null" class="percent">{{ canopy }}%</p>
+    <p v-else-if="error">{{ error }}</p>
+    <p v-else>Loading...</p>
     <p>from your area — {{ suburb }}</p>
   </div>
 
