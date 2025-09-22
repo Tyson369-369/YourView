@@ -2,7 +2,7 @@ import supabase from './supabase'
 
 export async function getCanopyCoverBySuburb(suburb) {
   try {
-    const cleanedSuburb = suburb.replace(/\s*VIC.*$/i, '').replace(/,.*$/, '').trim();
+    const cleanedSuburb = suburb.split(',')[0].replace(/\s+VIC$/i, '').trim();
     const { data, error } = await supabase
       .rpc('get_canopy_cover_by_suburb', { suburb: cleanedSuburb });
 
