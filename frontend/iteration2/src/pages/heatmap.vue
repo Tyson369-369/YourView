@@ -52,6 +52,11 @@
           </p>
         </div>
 
+        <div class="address-search search-below-map">
+          <input ref="autocompleteInput" type="text" placeholder="Enter your address" />
+          <button @click="onSuburbSelected">Show My Suburb</button>
+        </div>
+
         <!-- Insights Section: Hidden until suburb selected -->
         <div v-if="suburbSelected" class="insights-section">
           <h3>Insights for {{ suburbName }}</h3>
