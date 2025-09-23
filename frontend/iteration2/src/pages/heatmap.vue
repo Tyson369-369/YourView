@@ -36,14 +36,6 @@
           </iframe>
         </div>
 
-        <!-- Search input below the heatmap with spacing -->
-        <div class="search-below-map">
-          <div class="address-search">
-            <input type="text" placeholder="Enter your address" ref="autocompleteInput" />
-            <button @click="onSuburbSelected">Show My Suburb</button>
-          </div>
-        </div>
-
         <!-- Legend Explanation -->
         <div class="legend-explanation">
           <h3>What the Colors Mean</h3>
@@ -60,9 +52,12 @@
           </p>
         </div>
 
-        <div class="address-search">
-          <input type="text" placeholder="Enter your address" ref="autocompleteInput" />
-          <button @click="onSuburbSelected">Show My Suburb</button>
+        <!-- Search input below the heatmap with spacing -->
+        <div class="search-below-map">
+          <div class="address-search">
+            <input type="text" placeholder="Enter your address" ref="autocompleteInput" />
+            <button @click="onSuburbSelected">Show My Suburb</button>
+          </div>
         </div>
 
         <!-- Insights Section: Hidden until suburb selected -->
