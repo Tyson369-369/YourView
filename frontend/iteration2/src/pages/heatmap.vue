@@ -52,14 +52,6 @@
           </p>
         </div>
 
-        <!-- Search input below the heatmap with spacing -->
-        <div class="search-below-map">
-          <div class="address-search">
-            <input type="text" placeholder="Enter your address" ref="autocompleteInput" />
-            <button @click="onSuburbSelected">Show My Suburb</button>
-          </div>
-        </div>
-
         <!-- Insights Section: Hidden until suburb selected -->
         <div v-if="suburbSelected" class="insights-section">
           <h3>Insights for {{ suburbName }}</h3>
