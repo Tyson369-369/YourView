@@ -44,6 +44,22 @@
           </div>
         </div>
 
+        <!-- Legend Explanation -->
+        <div class="legend-explanation">
+          <h3>What the Colors Mean</h3>
+          <p>
+            The heat map shows the average daytime land surface temperature across Melbourne suburbs.
+            <span class="legend-color" style="background-color:#fee5d9;"></span> 
+            <strong>Less than 26.1°C</strong> – Cooler areas, often greener or less urbanised.<br/>
+            <span class="legend-color" style="background-color:#fcae91;"></span> 
+            <strong>26.1°C to 30.1°C</strong> – Moderately warm, typical suburban zones.<br/>
+            <span class="legend-color" style="background-color:#fb6a4a;"></span> 
+            <strong>30.1°C to 34.3°C</strong> – Hotter built-up areas with limited green cover.<br/>
+            <span class="legend-color" style="background-color:#cb181d;"></span> 
+            <strong>34.3°C or more</strong> – Extreme heat pockets, often dense urban or industrial zones.
+          </p>
+        </div>
+
         <div class="address-search">
           <input type="text" placeholder="Enter your address" ref="autocompleteInput" />
           <button @click="onSuburbSelected">Show My Suburb</button>
@@ -419,3 +435,34 @@ function scrollToHeatmap() {
   60% { transform: translateY(-5px); }
 }
 </style>
+
+.legend-explanation {
+  margin-top: 2rem;
+  text-align: left;
+  background: #fdfdfd;
+  border: 1px solid #ddd;
+  padding: 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.legend-explanation h3 {
+  margin-bottom: 1rem;
+  color: #00796b;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.legend-color {
+  display: inline-block;
+  width: 20px;
+  height: 12px;
+  margin-right: 8px;
+  border: 1px solid #ccc;
+  vertical-align: middle;
+}
