@@ -19,6 +19,9 @@
           </div>
         </div>
       </section>
+      <div class="scroll-arrow" @click="scrollToHeatmap">
+        ↓
+      </div>
 
       <!-- Heatmap Section -->
       <section class="heatmap-section">
@@ -31,6 +34,14 @@
             frameborder="0" 
             style="border-radius: 8px;">
           </iframe>
+        </div>
+
+        <!-- Search input below the heatmap with spacing -->
+        <div class="search-below-map">
+          <div class="address-search">
+            <input type="text" placeholder="Enter your address" ref="autocompleteInput" />
+            <button @click="onSuburbSelected">Show My Suburb</button>
+          </div>
         </div>
 
         <div class="address-search">
@@ -128,6 +139,13 @@ function onSuburbSelected() {
     hotDays: `${hotDays} more very hot days`,
     ozone: `Ozone higher by +${ozone} ppb`,
     warmingRate: `${warmingRate}°F per decade higher`
+  }
+}
+
+function scrollToHeatmap() {
+  const heatmapSection = document.querySelector('.heatmap-section')
+  if (heatmapSection) {
+    heatmapSection.scrollIntoView({ behavior: 'smooth' })
   }
 }
 </script>
@@ -372,12 +390,32 @@ function onSuburbSelected() {
   color: #00796b;
 }
 
-.highlight-text {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #555555;
-  margin-top: 0.25rem;
-  text-transform: lowercase;
-  user-select: text;
+  .highlight-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555555;
+    margin-top: 0.25rem;
+    text-transform: lowercase;
+    user-select: text;
+  }
+
+/* Add spacing for the address search below the map */
+.search-below-map {
+  margin-top: 2rem;
+}
+
+.scroll-arrow {
+  font-size: 2.5rem;
+  color: #00796b;
+  text-align: center;
+  cursor: pointer;
+  margin: 1rem 0;
+  animation: bounce 1.5s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
 }
 </style>
