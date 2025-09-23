@@ -4,7 +4,7 @@
     <div class="container">
       <h1 class="title">Track Your Plant Health With AI</h1>
       <h3 class="subtitle">
-        Upload a photo and describe your plant — we’ll check how it’s doing and provide personalized care recommendations
+        Create greener spaces from your hands. Snap your plant, get a health score, and follow smart tips to keep it thriving
       </h3>
 
       <form class="card" @submit.prevent="handleSubmit">
