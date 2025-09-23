@@ -13,10 +13,6 @@
               Cities get hot because concrete and roads soak up the sun. Trees give shade
               and act like nature’s air-conditioners, making neighborhoods up to 4° cooler.
             </p>
-            <div class="address-search">
-              <input type="text" placeholder="Enter your address" ref="autocompleteInput" />
-              <button @click="onSuburbSelected">Show My Suburb</button>
-            </div>
           </div>
           <div class="image-content">
             <img src="@/assets/UHI_Illustration.png" alt="Urban Heat Island Illustration" />
@@ -35,6 +31,11 @@
             frameborder="0" 
             style="border-radius: 8px;">
           </iframe>
+        </div>
+
+        <div class="address-search">
+          <input type="text" placeholder="Enter your address" ref="autocompleteInput" />
+          <button @click="onSuburbSelected">Show My Suburb</button>
         </div>
 
         <!-- Insights Section: Hidden until suburb selected -->
