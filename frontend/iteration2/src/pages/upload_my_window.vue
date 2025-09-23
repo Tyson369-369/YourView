@@ -294,6 +294,7 @@
 
   <Footer />
 
+  <!--
   <div class="canopy-card">
     <p v-if="canopy !== null" class="percent">{{ canopy }}%</p>
     <p v-else-if="error">{{ error }}</p>
@@ -303,6 +304,7 @@
       <template v-if="canopyArea"> — {{ canopyArea }}</template>
     </p>
   </div>
+  -->
 
   <!-- toast -->
   <div class="toast" :class="[toastVisible ? 'on' : '', toastType]" role="status" aria-live="polite">
