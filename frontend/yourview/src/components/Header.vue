@@ -8,10 +8,10 @@
 
       <!-- Desktop nav -->
       <nav class="nav desktop" aria-label="Primary">
-        <router-link to="/upload_window" class="nav-link" active-class="active">Upload My Window</router-link>
-        <router-link to="/heatmap" class="nav-link" active-class="active">Suburb Heat</router-link>
-        <router-link to="/plant_health" class="nav-link" active-class="active">Plant Health</router-link>
-        <!-- <router-link to="/gallery" class="nav-link" active-class="active">Window Gallery</router-link> -->
+        <router-link to="/iteration_2/upload_window" class="nav-link" active-class="active">Upload My Window</router-link>
+        <router-link to="/iteration_2/heatmap" class="nav-link" active-class="active">Suburb Heat</router-link>
+        <router-link to="/iteration_2/plant_health" class="nav-link" active-class="active">Plant Health</router-link>
+        <!-- <router-link to="/gallery2" class="nav-link" active-class="active">Window Gallery</router-link> -->
       </nav>
 
       <!-- Mobile menu button -->
@@ -28,10 +28,10 @@
 
     <!-- Mobile drawer -->
     <nav id="mobile-menu" class="nav mobile" aria-label="Primary Mobile" v-if="mobileOpen">
-      <router-link @click="close()" to="/upload_window" class="nav-link" active-class="active">Upload My Window</router-link>
-      <router-link @click="close()" to="/heatmap" class="nav-link" active-class="active">Suburb Heat</router-link>
-      <router-link @click="close()" to="/plant_health" class="nav-link" active-class="active">Plant Health</router-link>
-      <!-- <router-link @click="close()" to="/gallery" class="nav-link" active-class="active">Window Gallery</router-link> -->
+      <router-link @click="close()" to="/iteration_2/upload_window" class="nav-link" active-class="active">Upload My Window</router-link>
+      <router-link @click="close()" to="/iteration_2/heatmap" class="nav-link" active-class="active">Suburb Heat</router-link>
+      <router-link @click="close()" to="/iteration_2/plant_health" class="nav-link" active-class="active">Plant Health</router-link>
+      <!-- <router-link @click="close()" to="/gallery2" class="nav-link" active-class="active">Window Gallery</router-link> -->
     </nav>
   </header>
 </template>
