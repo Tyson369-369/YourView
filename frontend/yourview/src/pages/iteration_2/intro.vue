@@ -68,7 +68,7 @@ onMounted(() => {
 const goNext = async () => {
   const state = Flip.getState('[data-flip-id="continue"]')
 
-  await router.push({ name: 'intro-step1' })
+  await router.push({ name: 'intro2-step1' })
   await nextTick()
   await new Promise(requestAnimationFrame)
 

@@ -1,6 +1,3 @@
-<script setup>
-// (No longer used: old suburb-based canopy cover lookup and cleanSuburb helper)
-</script>
 <template>
   <Header />
 
@@ -53,6 +50,10 @@
       <!-- Step 1: choose photo + consent -->
       <div v-if="modalStep===1" class="modal-body">
         <h3 class="modal-title">Upload a photo</h3>
+        <p class="modal-subnote">
+  We assume your upload relates to a CBD suburb or intended area.
+  Uploading an incorrect picture may lead to misleading results.
+</p>
         <div class="upload-box">
           <div v-if="previewUrl" class="preview">
             <img :src="previewUrl" alt="preview" />
@@ -71,7 +72,9 @@
         <!-- consent kept (can turn off if not needed) -->
         <label class="consent">
           <input type="checkbox" v-model="allowShow" :disabled="loading" />
-          By consenting, you allow us to store your information under our Terms and Conditions and Privacy Policy.
+          <span class="modal-subnote">
+            By consenting, you allow us to store your information under our Terms and Conditions and Privacy Policy.
+          </span>
         </label>
 
         <button
@@ -198,7 +201,9 @@
               <div class="mini-ov-body">
                 <p>Create greener spaces from your hands. Snap your plant, get a health score, and follow smart tips to keep it thriving</p>
                 <div class="mini-ov-actions">
-                  <button class="btn primary">Check Plant Health</button>
+                  <RouterLink class="btn primary" :to="{ name: 'plant_health2' }">
+                    Check Plant Health
+                  </RouterLink>
                   <button class="btn ghost" @click="showTips3 = false">Back</button>
                 </div>
               </div>
@@ -228,7 +233,9 @@
               <div class="mini-ov-body">
                 <p>Urban heat is rising. Discover hot spots in your neighborhood and take action to grow a greener, cooler community.</p>
                 <div class="mini-ov-actions">
-                  <button class="btn primary">Check your area heat</button>
+                  <RouterLink class="btn primary" :to="{ name: 'heatmap2' }">
+                    Check your area heat
+                  </RouterLink>
                   <button class="btn ghost" @click="showTips30 = false">Back</button>
                 </div>
               </div>
@@ -260,7 +267,10 @@
               <div class="mini-ov-body">
                 <p>Your voice matters in shaping Melbourne. Request more green space in your area directly to the government</p>
                 <div class="mini-ov-actions">
-                  <button class="btn primary">Contact Council</button>
+                  <a
+                  class="btn primary" href="https://services.melbourne.vic.gov.au/report/treemaintenance"
+                  target="_blank"
+                  rel="noopener">Contact Council</a>
                   <button class="btn ghost" @click="showTips300 = false">Back</button>
                 </div>
               </div>
@@ -284,6 +294,7 @@
 
   <Footer />
 
+  <!--
   <div class="canopy-card">
     <p v-if="canopy !== null" class="percent">{{ canopy }}%</p>
     <p v-else-if="error">{{ error }}</p>
@@ -293,6 +304,7 @@
       <template v-if="canopyArea"> — {{ canopyArea }}</template>
     </p>
   </div>
+  -->
 
   <!-- toast -->
   <div class="toast" :class="[toastVisible ? 'on' : '', toastType]" role="status" aria-live="polite">
@@ -1000,5 +1012,10 @@ const showTips300 = ref(false)
   padding: 10px 12px;
   font-size: 14px;
 }
-
+.modal-subnote {
+  margin: 2px 0 12px;
+  color: #6b7280;       
+  font-size: 12px;       
+  line-height: 1.4;
+}
 </style>

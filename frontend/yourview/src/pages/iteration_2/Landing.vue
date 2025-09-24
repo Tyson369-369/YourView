@@ -207,7 +207,7 @@ const services = [
     title: 'Check your green score',
     desc: 'Is your home green enough? Upload a photo and find out — trees, cover, and parks measured by the 3-30-300 rule.',
     cta: 'Upload my window',
-    action: () => router.push({ name: 'upload_window' })
+    action: () => router.push({ name: 'upload_window2' })
   },
   {
     // second service
@@ -215,7 +215,7 @@ const services = [
     title: 'Check your suburb heat',
     desc: 'Is your suburb overheating? Cities lose plants, gain concrete, and lock in heat — the Urban Heat Island Effect.',
     cta: 'Check suburb heat',
-    action: () => router.push({ name: 'heatmap' })
+    action: () => router.push({ name: 'heatmap2' })
   },
   {
     // third service
@@ -223,7 +223,7 @@ const services = [
     title: 'Keep your plant alive',
     desc: 'Got a struggling plant? Snap it, get instant tips, and bring the green back into your space.',
     cta: 'Open Plant Health',
-    action: () => router.push({ name: 'plant_health' })
+    action: () => router.push({ name: 'plant_health2' })
   },
   {
     // fourth service
@@ -231,8 +231,7 @@ const services = [
     title: 'Find Your Green Companion',
     desc: 'Discover 3 plants made for you. Shuffle for more and learn how to care for them with ease.',
     cta: 'My Green Picks',
-    action: () => router.push({ name: 'intro-step2' })
-    // the page have not created
+    action: () => router.push({ name: 'plant_health2' })
   },
   {
     // fifth service
@@ -240,9 +239,8 @@ const services = [
     title: 'Raise your voice',
     desc: 'Your voice matters! Request more green space and vote for the next green laneway to cool our city. We want to hear from you!',
     cta: 'Contact council',
-    action: () => router.push({ name: 'intro-step2' })
-    // the petition page have not created
-  },
+    action: () => window.open('https://services.melbourne.vic.gov.au/report/treemaintenance', '_blank')
+},
 
 ]
 

@@ -10,9 +10,9 @@
       <div class="footer-col">
         <h3>Features</h3>
         <ul>
-          <li><RouterLink :to="{ name: 'upload_window' }">Upload My Window</RouterLink></li>
-          <li><RouterLink :to="{ name: 'heatmap' }">Suburb Heat</RouterLink></li>
-          <li><RouterLink :to="{ name: 'plant_health' }">Plant Health</RouterLink></li>
+          <li><RouterLink :to="{ name: 'upload_window2' }">Upload My Window</RouterLink></li>
+          <li><RouterLink :to="{ name: 'heatmap2' }">Suburb Heat</RouterLink></li>
+          <li><RouterLink :to="{ name: 'plant_health2' }">Plant Health</RouterLink></li>
           <li>
             <a
               href="https://services.melbourne.vic.gov.au/report/treemaintenance"
@@ -22,7 +22,7 @@
               Contact Council
             </a>
           </li>
-          <li><RouterLink :to="{ name: 'gallery' }">Window Gallery</RouterLink></li>
+          <!-- <li><RouterLink :to="{ name: 'gallery' }">Window Gallery</RouterLink></li> -->
         </ul>
       </div>
 

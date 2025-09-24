@@ -15,7 +15,7 @@
         <span>Continue</span>
         <span class="arrow">→</span>
       </button>
-      <RouterLink class="skip mt-3" :to="{ name: 'landing', query: { splash: 1 } }">SKIP</RouterLink>
+      <RouterLink class="skip mt-3" :to="{ name: 'landing2', query: { splash: 1 } }">SKIP</RouterLink>
     </section>
   </main>
 </template>
