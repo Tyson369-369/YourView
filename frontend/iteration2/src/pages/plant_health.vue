@@ -4,7 +4,7 @@
     <div class="container">
       <h1 class="title">Track Your Plant Health With AI</h1>
       <h3 class="subtitle">
-        Create greener spaces from your hands. Snap your plant, get a health score, and follow smart tips to keep it thriving
+        Create greener spaces from your hands. Snap your plant, get a health score, and follow smart tips to keep it thriving
       </h3>
 
       <form class="card" @submit.prevent="handleSubmit">
@@ -25,29 +25,66 @@
           </div>
         </div>
 
-
         <div class="upload-box">
+          <!-- When a preview exists -->
           <div v-if="previewUrl" class="preview inside-upload-box">
             <div>
               <img :src="previewUrl" alt="preview" />
             </div>
+
+            <!-- Keep your original 'Change Photo' (clears the current selection) -->
             <label class="upload-button" @click="resetPreview">
               <img src="@/assets/icon_camera.png" width="16" alt="Camera Icon" />
               <span>Change Photo</span>
             </label>
+
+            <!-- NEW: Directly open device camera when supported.
+                 Note: 'capture' is a *hint*. Mobile browsers usually open camera.
+                 Desktop browsers fall back to the file picker. -->
+            <label class="upload-button">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                @change="onFileSelected"
+                hidden
+              />
+              <img src="@/assets/icon_camera.png" width="16" alt="Camera Icon" />
+              <span>Take Photo</span>
+            </label>
           </div>
 
+          <!-- When no preview yet -->
           <div v-else class="inside-upload-box">
             <img src="@/assets/icon_upload.png" width="40" class="center-self" alt="" />
             <h2 class="upload-title">Upload a photo of your plant</h2>
+
+            <!-- Existing: choose from gallery/files -->
             <label class="upload-button">
-              <input type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" @change="onFileSelected" hidden />
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                @change="onFileSelected"
+                hidden
+              />
               <img src="@/assets/icon_camera.png" width="16" alt="Camera Icon" />
               <span>Choose Photo</span>
             </label>
+
+            <!-- NEW: open camera (mobile) or fallback picker (desktop) -->
+            <label class="upload-button">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                @change="onFileSelected"
+                hidden
+              />
+              <img src="@/assets/icon_camera.png" width="16" alt="Camera Icon" />
+              <span>Take Photo</span>
+            </label>
           </div>
         </div>
-
 
         <button class="analyze-button" :disabled="!file || loading">
           <span v-if="!loading" class="btn-content">
@@ -63,31 +100,22 @@
         <p v-if="error" class="error">{{ error }}</p>
       </form>
 
-
       <div v-if="lowConfidence" class="card warn-card">
         <p class="warn-big">Unable to analyze. Please upload photos of the plants.</p>
         <p class="warn-sub">
-          We cannot confidently identify this image as a plant (Identification confidence ≤ 10%). 
+          We cannot confidently identify this image as a plant (Identification confidence ≤ 10%).
           Please try to change to a clearer close-up of the plant.
         </p>
       </div>
 
-      <!-- normal card -->
+      <!-- Result card -->
       <div v-if="result && !lowConfidence" class="card" style="margin-top:1rem;">
-        <!-- Hidden but not deleted fields -->
         <ul class="kv" style="display:none;">
-          <li v-if="result?.family">
-            <strong>Family:</strong> {{ result.family }}
-          </li>
-          <li v-if="result?.confidence !== undefined">
-            <strong>Identification confidence:</strong> {{ result.confidence }}%
-          </li>
-          <li v-if="result?.confidence_level">
-            <strong>Assessment confidence:</strong> {{ result.confidence_level }}
-          </li>
+          <li v-if="result?.family"><strong>Family:</strong> {{ result.family }}</li>
+          <li v-if="result?.confidence !== undefined"><strong>Identification confidence:</strong> {{ result.confidence }}%</li>
+          <li v-if="result?.confidence_level"><strong>Assessment confidence:</strong> {{ result.confidence_level }}</li>
         </ul>
 
-        <!-- Summary container -->
         <div v-if="result?.quick_summary" class="summary-card">
           <div class="summary-title">Summary</div>
           <p class="summary-text">{{ result.quick_summary }}</p>
@@ -159,7 +187,13 @@
 </template>
 
 <script setup>
-/** === Replace these with your real endpoints === */
+/**
+ * NEW camera capture:
+ * - We add a second <input type="file"> with accept="image/*" and capture="environment".
+ * - On mobile browsers, this usually opens the camera app directly.
+ * - On desktop, browsers fall back to the file picker.
+ * - We reuse your existing onFileSelected() so all logic stays exactly the same.
+ */
 const UPLOADER_URL =
   'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/upload-image';
 const DELETE_URL =
@@ -178,13 +212,13 @@ const file = ref(null);
 const previewUrl = ref(null);
 const loading = ref(false);
 const error = ref(null);
-// const deleteInfo = ref(null); // 
-const allowShow = ref(false);   // If you don't want it to be deleted by default, change it to true
+// const deleteInfo = ref(null);
+const allowShow = ref(false);
 const result = ref(null);
 const lowConfidence = ref(false);
 
-const openCare = ref(true);     // The first paragraph is expanded by default
-const openMore = ref(false);    // The second paragraph is collapsed by default
+const openCare = ref(true);
+const openMore = ref(false);
 
 // S3 folder name
 const S3_FOLDER = 'PlantHealth';
@@ -209,6 +243,7 @@ const otherCare = computed(() => {
 });
 
 function onFileSelected(e) {
+  // Handles both "Choose Photo" and "Take Photo"
   const f = e.target.files?.[0];
   error.value = null;
   result.value = null;
@@ -218,7 +253,7 @@ function onFileSelected(e) {
     resetPreview();
     return;
   }
-  const ok = /\.(jpe?g|png)$/i.test(f.name);
+  const ok = /\.(jpe?g|png)$/i.test(f.name) || /^image\//i.test(f.type);
   if (!ok) {
     error.value = 'Only JPG and PNG are allowed.';
     return;
@@ -327,7 +362,6 @@ async function handleSubmit() {
       } catch (e) {
         console.warn('Forced delete (low-confidence) errored', e);
       }
-      
       result.value = null;
       return;
     }
@@ -393,6 +427,7 @@ async function handleSubmit() {
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
 
+/* Status strip */
 .status-strip {
   display: flex;
   align-items: stretch;
@@ -409,9 +444,7 @@ async function handleSubmit() {
 .species-aka { color: #0f766e; font-weight: 500; margin-left: 6px; }
 .status-big { font-weight: 800; color: #059669; font-size: 26px; line-height: 1.1; }
 .score-box { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; }
-.score-label {
-  color: #065f46; font-weight: 700; font-size: 12px; letter-spacing: .3px; text-transform: uppercase;
-}
+.score-label { color: #065f46; font-weight: 700; font-size: 12px; letter-spacing: .3px; text-transform: uppercase; }
 .score-value { color: #064e3b; font-weight: 900; font-size: 28px; }
 
 /* Upload */
@@ -500,7 +533,6 @@ async function handleSubmit() {
 .subhead { color: #065f46; font-weight: 800; margin-bottom: 6px; }
 .disc { list-style: disc; padding-left: 20px; margin: 0; }
 .mt8 { margin-top: 8px; }
-
 
 .disclaimer {
   margin-top: 12px;
