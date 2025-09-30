@@ -199,7 +199,7 @@ const UPLOADER_URL =
 const DELETE_URL =
   'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object';
 const PLANT_ANALYZER_URL =
-  'https://efmnjv0lr3.execute-api.ap-southeast-2.amazonaws.com/plant-health';
+  'https://efmnjv0lr3.execute-api.ap-southeast-2.amazonaws.com/plant-health-checker';
 
 import { computed, ref } from 'vue';
 import Header from '@/components/Header.vue';
