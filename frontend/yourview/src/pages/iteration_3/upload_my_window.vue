@@ -1,6 +1,6 @@
-<script setup>
+<!-- <script setup>
 // (No longer used: old suburb-based canopy cover lookup and cleanSuburb helper)
-</script>
+</script> -->
 <template>
   <Header />
 
