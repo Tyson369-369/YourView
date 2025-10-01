@@ -12,6 +12,8 @@ const routes = [
   { path: '/plant_health', name: 'plant_health', component: () => import('@/pages/plant_health.vue') },
   { path: '/gallery', name: 'gallery', component: () => import('@/pages/gallery.vue') },
   { path: '/upload', name: 'upload', component: () => import('@/pages/upload.vue') },
+  { path: '/terms', name: 'term', component: () => import('@/pages/term&condition.vue') },
+  { path: '/privacy', name: 'privacy', component: () => import('@/pages/privacy.vue') },
 ]
 
 export default createRouter({

@@ -231,16 +231,16 @@ const services = [
     title: 'Find Your Green Companion',
     desc: 'Discover 3 plants made for you. Shuffle for more and learn how to care for them with ease.',
     cta: 'My Green Picks',
-    action: () => router.push({ name: 'intro-step2' })
+    action: () => router.push({ name: 'plant_health' })
     // the page have not created
   },
   {
     // fifth service
     img: new URL('@/assets/our-service-ct-mel.png', import.meta.url),
-    title: 'Raise your voice',
-    desc: 'Your voice matters! Request more green space and vote for the next green laneway to cool our city. We want to hear from you!',
-    cta: 'Contact council',
-    action: () => router.push({ name: 'intro-step2' })
+title: 'Raise your voice',
+desc: 'Your voice matters! Request more green space and vote for the next green laneway to cool our city. We want to hear from you!',
+cta: 'Contact council',
+action: () => window.open('https://services.melbourne.vic.gov.au/report/treemaintenance', '_blank')
     // the petition page have not created
   },
 
