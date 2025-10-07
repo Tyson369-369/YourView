@@ -51,7 +51,7 @@
 
     <!-- SERVICES -->
     <section id="services" class="cover services">
-      <h2 class="services-title">Our Service</h2>
+      <h2 class="services-title gradient">Our Service</h2>
       <p class="services-sub">Explore how you can learn about living greener</p>
 
       <div class="services-wrap">
@@ -60,13 +60,29 @@
         <button class="nav next" ref="nextEl" aria-label="Next">›</button>
 
         <!-- Swiper -->
-        <Swiper ref="swiperRef" :modules="[Navigation]" :navigation="{ prevEl: prevEl, nextEl: nextEl }"
-          :space-between="20" :slides-per-view="1.1" :breakpoints="{
-            640: { slidesPerView: 1.4 },
-            768: { slidesPerView: 2 },
-            1024: { slidesPerView: 3 }
-          }" :speed="450" @after-init="onInit" @slide-change="onSlideChange" class="services-swiper">
-          <SwiperSlide v-for="(s, i) in services" :key="i">
+        <Swiper
+          ref="swiperRef"
+          :modules="[Autoplay]"
+          :space-between="20"
+          :slides-per-view="'auto'"
+          :loop="true"
+          :allowTouchMove="true"
+          :grabCursor="true"
+          :speed="3000"             
+          :autoplay="{
+            delay: 0,                // no pause between slides
+            disableOnInteraction: false,
+            pauseOnMouseEnter: true,
+          }"
+          :free-mode="true"     
+          :free-mode-momentum="false"
+          class="services-swiper"
+        >
+          <SwiperSlide
+            v-for="(s, i) in services"
+            :key="i"
+            style="width: 320px; flex-shrink: 0;"   
+          >
             <article class="card" :data-idx="i">
               <img class="thumb" :src="s.img" :alt="s.title" />
               <div class="body">
@@ -154,12 +170,14 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Navigation } from 'swiper/modules'
+import { Navigation, Autoplay } from 'swiper/modules'   
 import 'swiper/css'
 import 'swiper/css/navigation'
 import gsap from 'gsap'
 import Footer from '@/components/Footer.vue'
 import { useRouter } from 'vue-router'
+
+
 
 const router = useRouter()
 
@@ -175,7 +193,6 @@ const showSplash = ref(false)
 const splashDone = ref(false)
 
 onMounted(() => {
-  // If you came from step3 with a splash request, e.g. ?splash=1
   const hasSplash = new URLSearchParams(location.search).get('splash') === '1'
   if (!hasSplash) return
 
@@ -184,7 +201,7 @@ onMounted(() => {
   setTimeout(() => { showSplash.value = false }, 1700) // remove from dom
 })
 
-// tiny fade/blur effect on scroll using CSS var (no library)
+// tiny fade blur effect on scroll using CSS var 
 onMounted(() => {
   const onScroll = () => {
     const y = Math.min(window.scrollY, window.innerHeight)
@@ -390,7 +407,7 @@ p {
   /* above the fixed hero */
   background: #F8FEF6;
   min-height: 80vh;
-  padding: 6rem 1.5rem;
+  padding: 3.5rem 1.5rem;
 }
 
 /* Creates the initial scroll area so the next section can slide over the fixed hero */
@@ -407,13 +424,19 @@ p {
 
 .services-title {
   text-align: center;
-  font-size: clamp(1.6rem, 2.5vw, 2.2rem);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  letter-spacing: 1px;
+  line-height: 1.1;
   margin-bottom: .25rem;
 }
 
 .services-sub {
   text-align: center;
-  color: #566;
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  letter-spacing: 0.3px;
+  opacity: 0.9;   
+  color: #4b5a52;
   margin-bottom: 1.5rem;
 }
 
@@ -428,35 +451,34 @@ p {
   justify-content: center;
 }
 
-/* arrows */
-.nav {
-  position: absolute;
-  top: 42%;
-  transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  border: 1px solid #cfd9d4;
-  background: #fff;
-  cursor: pointer;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  font-size: 22px;
-  line-height: 1;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .07);
+.services-swiper:hover {
+  cursor: grab;
+  opacity: 0.95;
+  transition: opacity 0.3s ease;
 }
 
-.nav:hover {
-  background: #f7fbf9;
+.gradient {
+  background: linear-gradient(90deg, #14532d, #22c55e, #166534);
+  background-size: 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  animation: gradientFlow 6s linear infinite;
+  transition: background-position 0.8s ease, transform 0.3s ease;
+  display: inline-block;
 }
 
-.nav.prev {
-  left: -8px;
+/* continuous shimmer animation */
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
 }
 
-.nav.next {
-  right: -8px;
+/* hover interaction: shifts gradient, soft scale */
+.gradient:hover {
+  background-position: 100% 50%;
+  transform: scale(1.04);
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.35);
 }
 
 /* cards */
@@ -523,17 +545,32 @@ p {
 }
 
 .cover.services {
-  min-height: 100vh;
+  min-height: 60vh;
   display: grid;
   place-content: center;
-  padding: 3rem 1.5rem;
+  padding: 2rem 1rem;
   background: #F8FEF6;
 }
+
+.services-swiper {
+  overflow: hidden;
+  padding: 1rem 0;
+}
+
+.services-swiper:hover {
+  cursor: grab;
+}
+
+.services-swiper .swiper-wrapper {
+  transition-timing-function: linear 
+}
+
 
 /* 3-30-300 */
 .cover.rule {
   background: #ffffff;
-  padding: 20rem 2rem;
+  padding: 10rem 2rem;
+  min-height: auto;
 
 }
 
