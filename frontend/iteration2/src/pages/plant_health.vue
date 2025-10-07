@@ -8,16 +8,14 @@
       </h3>
 
       <form class="card" @submit.prevent="handleSubmit">
-
+        <!-- Top status strip -->
         <div v-if="result && !lowConfidence" class="status-strip">
           <div class="status-left">
             <div class="species" v-if="result?.species">
               {{ result.species }}
               <span v-if="result?.common_name" class="species-aka">({{ result.common_name }})</span>
             </div>
-            <div class="status-big">
-              {{ displayStatus }}
-            </div>
+            <div class="status-big">{{ displayStatus }}</div>
           </div>
           <div class="score-box" v-if="result?.health_score">
             <span class="score-label">Health</span>
@@ -25,67 +23,48 @@
           </div>
         </div>
 
+        <!-- Upload area -->
         <div class="upload-box">
           <!-- When a preview exists -->
           <div v-if="previewUrl" class="preview inside-upload-box">
-            <div>
-              <img :src="previewUrl" alt="preview" />
-            </div>
+            <div><img :src="previewUrl" alt="preview" /></div>
 
-            <!-- Keep your original 'Change Photo' (clears the current selection) -->
+            <!-- Change file -->
             <label class="upload-button" @click="resetPreview">
               <img src="@/assets/icon_camera.png" width="16" alt="Camera Icon" />
               <span>Change Photo</span>
             </label>
 
-            <!-- NEW: Directly open device camera when supported.
-                 Note: 'capture' is a *hint*. Mobile browsers usually open camera.
-                 Desktop browsers fall back to the file picker. -->
+            <!-- Take photo (mobile prefers camera; desktop falls back to picker) -->
             <label class="upload-button">
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                @change="onFileSelected"
-                hidden
-              />
+              <input type="file" accept="image/*" capture="environment" @change="onFileSelected" hidden/>
               <img src="@/assets/icon_camera.png" width="16" alt="Camera Icon" />
               <span>Take Photo</span>
             </label>
           </div>
 
-          <!-- When no preview yet -->
+          <!-- No preview yet -->
           <div v-else class="inside-upload-box">
             <img src="@/assets/icon_upload.png" width="40" class="center-self" alt="" />
             <h2 class="upload-title">Upload a photo of your plant</h2>
 
-            <!-- Existing: choose from gallery/files -->
+            <!-- Choose from gallery/files -->
             <label class="upload-button">
-              <input
-                type="file"
-                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-                @change="onFileSelected"
-                hidden
-              />
+              <input type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" @change="onFileSelected" hidden/>
               <img src="@/assets/icon_camera.png" width="16" alt="Camera Icon" />
               <span>Choose Photo</span>
             </label>
 
-            <!-- NEW: open camera (mobile) or fallback picker (desktop) -->
+            <!-- Take photo -->
             <label class="upload-button">
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                @change="onFileSelected"
-                hidden
-              />
+              <input type="file" accept="image/*" capture="environment" @change="onFileSelected" hidden/>
               <img src="@/assets/icon_camera.png" width="16" alt="Camera Icon" />
               <span>Take Photo</span>
             </label>
           </div>
         </div>
 
+        <!-- Analyze -->
         <button class="analyze-button" :disabled="!file || loading">
           <span v-if="!loading" class="btn-content">
             <img src="@/assets/icon_analyze.png" width="16" alt="Analyze Icon" />
@@ -100,16 +79,16 @@
         <p v-if="error" class="error">{{ error }}</p>
       </form>
 
-      <div v-if="lowConfidence" class="card warn-card">
-        <p class="warn-big">Unable to analyze. Please upload photos of the plants.</p>
-        <p class="warn-sub">
-          We cannot confidently identify this image as a plant (Identification confidence ≤ 10%).
-          Please try to change to a clearer close-up of the plant.
-        </p>
-      </div>
+        <!-- Warning card (used for low-confidence OR non-plant) -->
+        <div v-if="lowConfidence" class="card warn-card">
+          <p class="warn-big">{{ warnTitle }}</p>
+          <p class="warn-sub">{{ warnSubtitle }}</p>
+        </div>
+
 
       <!-- Result card -->
       <div v-if="result && !lowConfidence" class="card" style="margin-top:1rem;">
+        <!-- Hidden (kept for debugging/QA) -->
         <ul class="kv" style="display:none;">
           <li v-if="result?.family"><strong>Family:</strong> {{ result.family }}</li>
           <li v-if="result?.confidence !== undefined"><strong>Identification confidence:</strong> {{ result.confidence }}%</li>
@@ -188,77 +167,86 @@
 
 <script setup>
 /**
- * NEW camera capture:
- * - We add a second <input type="file"> with accept="image/*" and capture="environment".
- * - On mobile browsers, this usually opens the camera app directly.
- * - On desktop, browsers fall back to the file picker.
- * - We reuse your existing onFileSelected() so all logic stays exactly the same.
+ * Upload flow (no size limit issues):
+ * 1) sign-upload -> get { url, fields, bucket, key }
+ * 2) POST file directly to S3 (multipart/form-data)
+ * 3) optional: POST /moderate-object to content-check (will auto-delete if disallowed)
+ * 4) POST /plant-health-checker with {bucket, key}
  */
-const UPLOADER_URL =
-  'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/upload-image';
-const DELETE_URL =
-  'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default/delete-object';
-const PLANT_ANALYZER_URL =
-  'https://efmnjv0lr3.execute-api.ap-southeast-2.amazonaws.com/plant-health-checker';
-
 import { computed, ref } from 'vue';
 import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
 
-const LOW_CONFIDENCE_THRESHOLD = 10; // ≤10% is considered unanalyzable and should be deleted
+const API_BASE = 'https://oelkz0pl2c.execute-api.ap-southeast-2.amazonaws.com/default';
+const SIGN_URL = `${API_BASE}/sign-upload`;
+const MODERATE_URL = `${API_BASE}/moderate-object`;
+const DELETE_URL = `${API_BASE}/delete-object`;
 
-// state
+const PLANT_ANALYZER_URL =
+  'https://efmnjv0lr3.execute-api.ap-southeast-2.amazonaws.com/plant-health-checker';
+
+const LOW_CONFIDENCE_THRESHOLD = 10; // ≤10% => considered not analyzable
+
+// State
 const file = ref(null);
 const previewUrl = ref(null);
 const loading = ref(false);
 const error = ref(null);
-// const deleteInfo = ref(null);
-const allowShow = ref(false);
+
+// Results
 const result = ref(null);
 const lowConfidence = ref(false);
 
+// Dynamic warning texts so we can reuse the same red card for different reasons
+const warnTitle = ref('Unable to analyze. Please upload photos of the plants.');
+const warnSubtitle = ref(
+  'We cannot confidently identify this image as a plant (Identification confidence ≤ 10%). Please try to change to a clearer close-up of the plant.'
+);
+
+
+// UI accordions
 const openCare = ref(true);
 const openMore = ref(false);
 
-// S3 folder name
+// S3 folder to save under
 const S3_FOLDER = 'PlantHealth';
 
-// Display overall status, default to "Healthy" if missing/empty
+// Overall status text
 const displayStatus = computed(() => {
   const s = result.value?.overall_status;
   return (typeof s === 'string' && s.trim()) ? s : 'Healthy';
 });
 
-// Care: Only show Watering/Light/Pruning
+// Show only Watering/Light/Pruning in the first accordion
 const filteredCare = computed(() => {
   const wanted = new Set(['Watering', 'Light', 'Pruning']);
   const list = result.value?.care_recommendations || [];
-  return list.filter((x) => wanted.has(x?.category));
+  return list.filter(x => wanted.has(x?.category));
 });
-// Other care
+// Remaining tips to the second accordion
 const otherCare = computed(() => {
   const wanted = new Set(['Watering', 'Light', 'Pruning']);
   const list = result.value?.care_recommendations || [];
-  return list.filter((x) => !wanted.has(x?.category));
+  return list.filter(x => !wanted.has(x?.category));
 });
 
 function onFileSelected(e) {
-  // Handles both "Choose Photo" and "Take Photo"
+  // Works for both "Choose Photo" and "Take Photo"
   const f = e.target.files?.[0];
   error.value = null;
   result.value = null;
   lowConfidence.value = false;
 
-  if (!f) {
-    resetPreview();
-    return;
-  }
+  if (!f) return resetPreview();
+
+  // Accept jpeg/png or any image/* from camera
   const ok = /\.(jpe?g|png)$/i.test(f.name) || /^image\//i.test(f.type);
   if (!ok) {
     error.value = 'Only JPG and PNG are allowed.';
     return;
   }
   file.value = f;
+
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
   previewUrl.value = URL.createObjectURL(f);
 }
@@ -271,6 +259,7 @@ function resetPreview() {
   lowConfidence.value = false;
 }
 
+// Parse lambda-proxy style responses
 async function parseMaybeLambdaProxyResponse(res) {
   const data = await res.json().catch(() => null);
   if (!data) return null;
@@ -291,96 +280,126 @@ async function handleSubmit() {
   }
 
   loading.value = true;
-  let uploadedBucket = '';
-  let uploadedKey = '';
 
   try {
-    // 1) Upload S3 uploader
-    const form = new FormData();
-    form.append('file', file.value);
-    form.append('folder', S3_FOLDER);
+    // --- 1) Ask backend for a pre-signed POST (key will be generated there)
+    const signRes = await fetch(SIGN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        folder: S3_FOLDER,
+        content_type: file.value.type || 'image/jpeg',
+        ext_hint: file.value.name?.toLowerCase().endsWith('.png') ? '.png' : '.jpg'
+      })
+    });
+    if (!signRes.ok) throw new Error(`Sign upload failed (${signRes.status})`);
+    const { bucket, key, presigned } = await signRes.json();
 
-    const uploadRes = await fetch(UPLOADER_URL, { method: 'POST', body: form });
-    if (!uploadRes.ok) {
-      const text = await uploadRes.text().catch(() => '');
-      let detail = '';
-      try { const j = JSON.parse(text); detail = j?.detail ?? ''; } catch {}
-      throw new Error(detail || `Upload failed (${uploadRes.status})`);
+    // --- 2) Upload directly to S3 using returned form fields
+    const fd = new FormData();
+    Object.entries(presigned.fields).forEach(([k, v]) => fd.append(k, v));
+    fd.append('file', file.value);
+    const s3Res = await fetch(presigned.url, { method: 'POST', body: fd });
+    if (!s3Res.ok) throw new Error('Upload to S3 failed');
+
+    // --- 3) (Optional) Ask backend to moderate the object; will delete if disallowed
+    const modRes = await fetch(MODERATE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bucket, key })
+    });
+    if (!modRes.ok) {
+      const msg = await modRes.text().catch(() => '');
+      throw new Error(msg || 'Content moderation failed');
     }
-    const uploadJson = await uploadRes.json();
-    uploadedBucket = uploadJson.bucket || uploadJson.s3_bucket || uploadJson.Bucket;
-    uploadedKey    = uploadJson.key    || uploadJson.s3_key    || uploadJson.Key;
-    if (!uploadedBucket || !uploadedKey) throw new Error('Upload did not return bucket/key.');
 
-    // 2) plant-health-checker
-    const analyzePayload = {
-      bucket: uploadedBucket,
-      key: uploadedKey,
-      include_details: true,
-      check_compliance: true
-    };
+    // --- 4) Call plant-health-checker with {bucket, key}
+    const payload = { bucket, key, include_details: true, check_compliance: true };
     const analyzeRes = await fetch(PLANT_ANALYZER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(analyzePayload)
+      body: JSON.stringify(payload)
     });
     if (!analyzeRes.ok) {
-      const text = await analyzeRes.text().catch(() => '');
-      throw new Error(text || `Analyzer failed (${analyzeRes.status})`);
+      const t = await analyzeRes.text().catch(() => '');
+      throw new Error(t || `Analyzer failed (${analyzeRes.status})`);
     }
     const analyze = await parseMaybeLambdaProxyResponse(analyzeRes) ?? {};
 
-    // 3) Normalize result
+    // Non-plant short-circuit: backend returns analysis_result === -1
+    const nonPlant =
+      analyze?.analysis_result === -1 ||
+      String(analyze?.analysis_result) === '-1';
+
+    if (nonPlant) {
+      warnTitle.value = 'Unable to analyze. This does not look like a plant.';
+      warnSubtitle.value = 'This image was not recognized as a plant. Please upload a clear close-up of a plant.';
+      lowConfidence.value = true;
+
+      // Immediately delete the uploaded object for privacy/compliance
+      try {
+        await fetch(DELETE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bucket, key })
+        });
+      } catch (e) {
+        console.warn('Delete (non-plant) errored', e);
+      }
+      return;
+    }
+
+
+    // --- 5) Normalize fields for UI
     const species = analyze?.analysis_result?.species_identification;
     const sa = analyze?.analysis_result?.structured_analysis;
     const normalized = {
       species: species?.species,
       common_name: species?.common_name,
       family: species?.family,
-      confidence: species?.confidence, // %
+      confidence: species?.confidence,
       overall_status: sa?.health_assessment?.overall_status,
-      health_score: sa?.health_assessment?.health_score, // "7/10"
+      health_score: sa?.health_assessment?.health_score,
       confidence_level: sa?.health_assessment?.confidence_level,
       quick_summary: sa?.health_assessment?.quick_summary,
       care_recommendations: sa?.care_recommendations || [],
       issues_identified: sa?.issues_identified || [],
-      healthy_reference: sa?.healthy_reference || null,
-      raw: analyze
+      healthy_reference: sa?.healthy_reference || null
     };
 
-    // 3.1) Low confidence: show warning + forced delete
+    // --- 6) If identification confidence is too low, show warning and (safely) delete the uploaded object
     const conf = typeof normalized.confidence === 'number' ? normalized.confidence : NaN;
     if (!Number.isNaN(conf) && conf <= LOW_CONFIDENCE_THRESHOLD) {
+      warnTitle.value = 'Unable to analyze. Please upload photos of the plants.';
+      warnSubtitle.value =
+        'We cannot confidently identify this image as a plant (Identification confidence ≤ 10%). Please try a clearer close-up of the plant.';
       lowConfidence.value = true;
-      // FORCE DELETE
+
       try {
         await fetch(DELETE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bucket: uploadedBucket, key: uploadedKey })
+          body: JSON.stringify({ bucket, key })
         });
-      } catch (e) {
-        console.warn('Forced delete (low-confidence) errored', e);
-      }
+      } catch { /* ignore */ }
+
       result.value = null;
       return;
     }
 
-    // 3.2) Normal case: show result
+
+    // --- 7) Normal case: show result (optionally delete afterward if you don't want to keep images)
     result.value = normalized;
 
-    // 4) If not allowed to show, delete the uploaded file
-    if (!allowShow.value) {
-      try {
-        await fetch(DELETE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bucket: uploadedBucket, key: uploadedKey })
-        });
-      } catch (e) {
-        console.warn('Delete attempt errored', e);
-      }
-    }
+    // If always want to delete after analysis, uncomment below:
+    try {
+      await fetch(DELETE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bucket, key })
+      });
+    } catch { /* ignore */ }
+
   } catch (e) {
     error.value = e?.message || String(e);
   } finally {
@@ -397,47 +416,21 @@ async function handleSubmit() {
   background-position: center;
   background-repeat: no-repeat;
 }
-.container {
-  max-width: 800px;
-  margin: auto;
-  padding: 1rem;
-}
-.title {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  text-align: center;
-}
+.container { max-width: 800px; margin: auto; padding: 1rem; }
+.title { font-size: 2rem; margin-bottom: 1rem; text-align: center; }
 .subtitle {
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-  text-align: center;
-  font-weight: normal;
-  color: #616161;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-  line-height: 1.4;
+  font-size: 1rem; margin-bottom: 0.5rem; text-align: center; font-weight: normal;
+  color: #616161; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.4;
 }
 .card {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 24px;
-  margin-top: 1rem;
-  background: #fff;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; margin-top: 1rem;
+  background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
 
 /* Status strip */
 .status-strip {
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  margin-bottom: 14px;
-  border: 1px solid #bbf7d0;
-  background: #ecfdf5;
-  border-radius: 14px;
+  display: flex; align-items: stretch; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; margin-bottom: 14px; border: 1px solid #bbf7d0; background: #ecfdf5; border-radius: 14px;
 }
 .status-left { display: flex; flex-direction: column; gap: 6px; }
 .species { font-weight: 600; color: #065f46; font-size: 14px; }
@@ -448,48 +441,28 @@ async function handleSubmit() {
 .score-value { color: #064e3b; font-weight: 900; font-size: 28px; }
 
 /* Upload */
-.upload-box {
-  width: 100%;
-  background: white;
-  border: 2px dashed #e9e9e9;
-  border-radius: 16px;
-  padding: 32px;
-}
+.upload-box { width: 100%; background: white; border: 2px dashed #e9e9e9; border-radius: 16px; padding: 32px; }
 .inside-upload-box { text-align: center; display: flex; flex-direction: column; gap: 16px; }
 .upload-title { font-size: 20px; font-weight: bold; margin: 0; }
 .upload-button {
-  display: inline-flex; align-items: center; justify-content: center;
-  margin: auto; gap: 8px; width: 100%; padding: 12px 16px;
-  border: 1px solid #ccc; border-radius: 8px; background: #fff;
-  cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.2s ease;
+  display: inline-flex; align-items: center; justify-content: center; margin: auto; gap: 8px; width: 100%; padding: 12px 16px;
+  border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 500;
+  transition: background 0.2s ease;
 }
 .upload-button:hover { background: #f1f1f1; }
 .center-self { align-self: center; }
 .preview img { max-width: 100%; max-height: 250px; object-fit: contain; }
 
-/* Analyze animate */
+/* Analyze button */
 .analyze-button {
-  margin-top: 1.25rem;
-  width: 100%;
-  background: #103731;
-  border: none;
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  color: white;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+  margin-top: 1.25rem; width: 100%; background: #103731; border: none; border-radius: 8px; padding: 12px;
+  font-size: 16px; font-weight: bold; cursor: pointer; color: white; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
 }
 .analyze-button:disabled { background: #b0d5cf; cursor: not-allowed; }
 .btn-content { display: inline-flex; gap: 8px; align-items: center; }
 .btn-loading { display: inline-flex; gap: 10px; align-items: center; }
 .spinner {
-  width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4);
-  border-top-color: #fff; border-radius: 50%;
+  width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -504,28 +477,20 @@ async function handleSubmit() {
 /* Result card */
 .kv { list-style: none; padding: 0; margin: .5rem 0 0; }
 .kv li { margin: .2rem 0; }
-.summary-card {
-  margin-top: 10px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  border-radius: 12px;
-  padding: 12px 14px;
-}
+.summary-card { margin-top: 10px; border: 1px solid #e5e7eb; background: #f9fafb; border-radius: 12px; padding: 12px 14px; }
 .summary-title { font-weight: 800; color: #064e3b; margin-bottom: 6px; }
 .summary-text { color: #1f2937; }
 
 /* Accordion */
 .accordion { border: 1px solid #e5e7eb; border-radius: 12px; margin-top: 12px; overflow: hidden; }
 .acc-header {
-  width: 100%; text-align: left; padding: 12px 14px; background: #fff;
-  border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
-  color: #064e3b; font-weight: 800;
+  width: 100%; text-align: left; padding: 12px 14px; background: #fff; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; color: #064e3b; font-weight: 800;
 }
 .acc-body { padding: 10px 14px 12px; background: #fff; }
 .acc-left { display: inline-flex; align-items: center; gap: 8px; }
 .bulb { color: #059669; display: inline-flex; }
 .chev { color: #065f46; }
-
 .green-bullets { list-style: disc; padding-left: 20px; margin: 0; }
 .green-bullets li::marker { color: #059669; }
 .green-bullets li { margin: .2rem 0; }
@@ -534,11 +499,7 @@ async function handleSubmit() {
 .disc { list-style: disc; padding-left: 20px; margin: 0; }
 .mt8 { margin-top: 8px; }
 
-.disclaimer {
-  margin-top: 12px;
-  font-size: 12px;
-  color: #6b7280;
-}
+.disclaimer { margin-top: 12px; font-size: 12px; color: #6b7280; }
 
 @media screen and (min-width: 1024px) {
   .container { padding: 3rem; }
