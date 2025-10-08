@@ -70,7 +70,7 @@
           :grabCursor="true"
           :speed="3000"             
           :autoplay="{
-            delay: 0,                // no pause between slides
+            delay: 0,                
             disableOnInteraction: false,
             pauseOnMouseEnter: true,
           }"
@@ -99,11 +99,16 @@
     <section id="rule-330300" class="cover rule">
       <div class="rule-wrap">
         <h2 class="rule-title">
-          Understanding the <span class="accent">3-30-300 Rule</span>
+          <span class="line1">Understanding the</span><br />
+          <span class="accent rotate-text" :class="transitionClass">{{ currentText }}</span>
         </h2>
         <p class="rule-sub">
           A science-based framework used by urban planners to ensure everyone has
           adequate access to nature for health and wellbeing.
+          <br />
+          <span class="rule-sub-author">
+            By Prof. Cecil Konijnendijk
+          </span>
         </p>
 
         <!-- 3 cards -->
@@ -277,7 +282,31 @@ onMounted(() => {
   })
 })
 
-// 3-30-300 rule
+// 3-30-300 rule heading 
+const rotatingTexts = ['3 Trees Rule', '30% Canopy Rule', '300m Access Rule']
+const currentText = ref(rotatingTexts[0])
+const transitionClass = ref('fade-in') // start in visible state
+let index = 0
+let interval = null
+
+onMounted(() => {
+  interval = setInterval(async () => {
+    // fade out upwards
+    transitionClass.value = 'fade-out'
+    await new Promise(resolve => setTimeout(resolve, 500)) // wait for fade-out
+
+    // change text
+    index = (index + 1) % rotatingTexts.length
+    currentText.value = rotatingTexts[index]
+
+    // fade in new word
+    transitionClass.value = 'fade-in'
+  }, 2500)
+})
+
+onBeforeUnmount(() => clearInterval(interval))
+
+// 3-30-300 rule card flip 
 const rules = [
   {
     title: '3 Trees from your window',
@@ -304,7 +333,7 @@ const flipCard = (index) => {
 <style scoped>
 /* entry splash */
 .splash.over-video{
-  position: fixed; inset:0; z-index: 5;         /* above video, below hero text if you want */
+  position: fixed; inset:0; z-index: 5;
   background: #F8FEF6; display:grid; place-items:center;
   transition: opacity .5s ease;
 }
@@ -320,7 +349,6 @@ const flipCard = (index) => {
 }
 
 :root {
-  /* 0 at top, 1 when the next section fully covers the hero */
   --hero-progress: 0;
 }
 
@@ -596,21 +624,44 @@ p {
 
 .rule-title {
   text-align: center;
-  font-size: clamp(1.6rem, 2.8vw, 2.2rem);
-  margin: 0 0 .25rem;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  letter-spacing: 1px;
 }
 
-.rule-title .accent {
+
+.rotate-text {
+  display: inline-block;
+  min-width: 160px;
+  text-align: center;
   color: #0f7b4a;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 6px;
+  font-weight: 800;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
+
+/* Fade-out: move upward */
+.rotate-text.fade-out {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* Fade-in: move upward from below */
+.rotate-text.fade-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 
 .rule-sub {
   text-align: center;
-  color: #5b6963;
-  max-width: 60ch;
-  margin: 0 auto 2rem;
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  letter-spacing: 0.3px;
+  opacity: 0.9;   
+  color: #4b5a52;
+  margin-bottom: 1.5rem;
 }
 
 /* Flip Card Container */
