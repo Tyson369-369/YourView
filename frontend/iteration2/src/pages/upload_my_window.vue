@@ -77,7 +77,10 @@
         <label class="consent">
           <input type="checkbox" v-model="allowShow" :disabled="loading" />
           <span class="modal-subnote">
-            By consenting, you allow us to store your information under our Terms and Conditions and Privacy Policy.
+            By consenting, you allow us to store your information under our 
+            <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+            and 
+            <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
           </span>
         </label>
 
