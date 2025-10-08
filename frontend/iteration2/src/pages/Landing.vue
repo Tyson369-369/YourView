@@ -800,8 +800,10 @@ p {
 .cover.quote {
   background: #f8fef9;               
   padding: 5rem 1.5rem;
+  padding-bottom: 2.5rem;
   display: flex;
   justify-content: center;
+  min-height: auto;
 }
 
 .quote-wrap {
