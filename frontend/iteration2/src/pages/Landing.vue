@@ -124,7 +124,7 @@
               <!-- Front side -->
               <div class="flip-front">
                 <h3>{{ rule.title }}</h3>
-                <span class="hint">Click to learn more</span>
+                <span class="hint">Click and drag to learn more</span>
               </div>
 
               <!-- Back side -->
