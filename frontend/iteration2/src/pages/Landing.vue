@@ -484,6 +484,7 @@ p {
   font-weight: 800;
   letter-spacing: 1px;
   line-height: 1.1;
+  margin-top: 2rem;
   margin-bottom: .25rem;
 }
 
@@ -524,7 +525,7 @@ p {
   display: inline-block;
 }
 
-/* continuous shimmer animation */
+/* shimmer animation */
 @keyframes gradientMove {
   0% { background-position: 0% 50%; }
   100% { background-position: 100% 50%; }
