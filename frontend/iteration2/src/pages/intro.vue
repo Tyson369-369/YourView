@@ -24,9 +24,9 @@
       <!-- term -->
       <p ref="legalEl" class="legal">
         By clicking Continue, you agree to our
-        <RouterLink to="/terms">Terms of Service</RouterLink>
+        <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
         and confirm you have read our
-        <RouterLink to="/privacy">Privacy Policy</RouterLink>.
+        <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
       </p>
     </section>
 

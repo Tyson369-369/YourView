@@ -77,7 +77,10 @@
         <label class="consent">
           <input type="checkbox" v-model="allowShow" :disabled="loading" />
           <span class="modal-subnote">
-            By consenting, you allow us to store your information under our Terms and Conditions and Privacy Policy.
+            By consenting, you allow us to store your information under our 
+            <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+            and 
+            <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
           </span>
         </label>
 
@@ -147,12 +150,11 @@
 
   <!-- ========== Results ========== -->
   <div v-if="showResults" class="results">
-    <!-- Summary banner -->
+    <!-- Simple headline (no gradient box, no emojis) -->
     <div class="results-actions">
-      <div class="results-summary as-banner" :class="summaryLevel">
-        <span class="summary-icon" v-if="summaryLevel==='bad'">🌡️</span>
-        <span class="summary-icon" v-else>🌿</span>
-        <span class="summary-text large">{{ summaryText }}</span>
+      <div class="results-headline">
+        <div class="headline-text">{{ summaryText }}</div>
+        <div class="headline-sub">environment assessment result</div>
       </div>
       <div class="actions-right">
         <button class="btn secondary" @click="backToIntro">Back</button>
@@ -160,7 +162,7 @@
     </div>
 
     <!-- Warning when trees < 3 (we still show results; uploaded image is deleted) -->
-    <div
+    <!-- <div
       v-if="typeof treesCount === 'number' && treesCount < 3"
       class="alert warn"
       role="status"
@@ -170,7 +172,7 @@
       <strong>Not enough trees:</strong>
       We detected {{ treesCount }} {{ treesCount === 1 ? 'tree' : 'trees' }}.
       The uploaded image has been removed from our storage. Results below are for reference only.
-    </div>
+    </div> -->
 
     <!-- Two columns: image (left) + cards (right) with fade-in -->
     <div class="results-grid">
@@ -186,7 +188,7 @@
               <div class="mini-head">
                 <span class="mini-title">Tree Visible</span>
                 <span class="info-dot" aria-label="At least 3 trees should be visible" title="At least 3 trees should be visible">i</span>
-                <img class="side-icon" :src="result3Png" alt="3-rule" />
+                <img class="side-icon" :src="treesOK ? icon3Pass : icon3Fail" alt="3-rule" />
               </div>
 
               <div class="mini-value">
@@ -235,7 +237,7 @@
               <div class="mini-head">
                 <span class="mini-title">Canopy Cover</span>
                 <span class="info-dot" aria-label="Aim for 30% canopy cover" title="Aim for 30% canopy cover">i</span>
-                <img class="side-icon" :src="result30Png" alt="30-rule" />
+                <img class="side-icon" :src="canopyAvailable ? (pass30 ? icon30Pass : icon30Fail) : icon30Fail" alt="30-rule" />
               </div>
 
               <div class="mini-value">
@@ -290,7 +292,7 @@
               <div class="mini-head">
                 <span class="mini-title">Nearest Park</span>
                 <span class="info-dot" aria-label="Target is within 300 meters" title="Target is within 300 meters">i</span>
-                <img class="side-icon" :src="result300Png" alt="300-rule" />
+                <img class="side-icon" :src="pass300 ? icon300Pass : icon300Fail" alt="300-rule" />
               </div>
 
               <div class="mini-value">
@@ -302,6 +304,15 @@
                   <span class="unit"> Meters</span>
                   <span class="passed-label">passed</span>
                 </template>
+              </div>
+
+              <div class="mini-sub">
+                <template v-if="nearestParkName && parkLink">
+                  <a class="park-link" :href="parkLink" target="_blank" rel="noopener">
+                    {{ nearestParkName }}
+                  </a>
+                </template>
+                <template v-else>from your house</template>
               </div>
 
               <!-- show progress bar only if NOT passed (lte goal 300) -->
@@ -347,14 +358,12 @@
 
 <script setup lang="ts">
 /**
- * What changed for #5:
- * - Added pass/fail inline value decorations: "value/goal" (value bold + orange) on fail; small "passed" on success.
- * - Fixed GoalBar styling visibility with :deep selectors (scoped CSS won't penetrate child components otherwise).
- * - GoalBar math:
- *   * gte goals (3, 30): percent = value/goal, marker at 100% (bar stops before marker when value<goal).
- *   * lte goals (300): on fail value>goal -> percent = 100%, marker < 100% (bar exceeds marker).
+ * Changes in this revision:
+ * 1) Replace gradient summary banner with plain headline + gray subline.
+ * 2) GoalBar for gte goals now anchors the "Goal" marker ~2/3 along the track (goal * 1.5 scaling).
+ * 3) Side icons swap based on pass/fail using the six new assets in /assets.
+ * 4) Keep all previous behaviors (upload, moderation, analysis, park link, etc.).
  */
-
 import { onMounted, onUnmounted, ref, computed, defineComponent, h } from 'vue'
 import type { PropType } from 'vue'
 import Header from '@/components/Header.vue'
@@ -368,13 +377,18 @@ const DELETE_URL = `${API_BASE}/delete-object`
 const UPLOADER_URL = `${API_BASE}/upload-image` // fallback
 const ANALYZER_URL = 'https://2piqweol0f.execute-api.ap-southeast-2.amazonaws.com/analyze'
 
-/* ---------- Static images: carousel + side icons ---------- */
+/* ---------- Static images: carousel ---------- */
 import img23 from '@/assets/image 130.png'
 import img27 from '@/assets/image 131.png'
 import img28 from '@/assets/image 132.png'
-import result3Png from '@/assets/result3.png'
-import result30Png from '@/assets/result30.png'
-import result300Png from '@/assets/result300.png'
+
+/* ---------- New side icons (pass/fail variants) ---------- */
+import icon3Pass from '@/assets/3Trees passed icon.png'
+import icon3Fail from '@/assets/3Trees not passed icon.png'
+import icon30Pass from '@/assets/30 passed icon.png'
+import icon30Fail from '@/assets/30 not passed icon.png'
+import icon300Pass from '@/assets/300m passed icon.png'
+import icon300Fail from '@/assets/300m not passed icon.png'
 
 const images = [
   { src: img23, alt: 'Window 1' },
@@ -484,7 +498,6 @@ const summaryText = computed(() => passes.value >= 2
   ? 'Congratulations — you live in a healthy green environment.'
   : 'Looks like your area needs more green space.'
 )
-const summaryLevel = computed(() => (passes.value >= 2 ? 'great' : 'bad'))
 
 const parkLink = computed(() => {
   const name = nearestParkName.value?.trim()
@@ -626,7 +639,7 @@ function showToast(msg: string, type: 'info' | 'success' | 'error' = 'info', ms 
   toastTimer = window.setTimeout(() => { toastVisible.value = false; toastTimer = null }, ms)
 }
 
-// --- NEW: compute SHA-256 of a File (content-addressing) ---
+// Compute SHA-256 of a File (content-addressing)
 async function sha256OfFile(file: File) {
   const buf = await file.arrayBuffer();
   const hash = await crypto.subtle.digest('SHA-256', buf);
@@ -634,7 +647,6 @@ async function sha256OfFile(file: File) {
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 }
-
 
 /* ---------- Main flow: S3 direct upload → moderation → analyze → 30/300 ---------- */
 async function handleSeeMyScore() {
@@ -655,11 +667,9 @@ async function handleSeeMyScore() {
   try {
     /* 1) Direct-to-S3 with content hashing (dedupe at server) */
     try {
-      // 1.1 compute content hash in browser
       const contentHash = await sha256OfFile(file.value!);
       const isPng = file.value!.name?.toLowerCase().endsWith('.png');
 
-      // 1.2 ask backend for a presigned POST using canonical key = hash.ext
       const signRes = await fetch(SIGN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -667,18 +677,16 @@ async function handleSeeMyScore() {
           folder: 'YourWindow',
           content_type: file.value!.type || 'image/jpeg',
           ext_hint: isPng ? '.png' : '.jpg',
-          content_hash: contentHash, // <-- IMPORTANT
+          content_hash: contentHash,
         })
       });
       if (!signRes.ok) throw new Error(`sign-upload failed (${signRes.status})`);
       const { bucket, key, presigned, exists } = await signRes.json();
 
       if (exists) {
-        // The object already exists at canonical key (dedup hit) → skip upload & moderation
         uploadedBucket = bucket;
         uploadedKey = key;
       } else {
-        // 1.3 upload directly to S3 using the given canonical key
         const fd = new FormData();
         Object.entries(presigned.fields).forEach(([k, v]) => fd.append(k, v as string));
         fd.append('file', file.value!);
@@ -688,7 +696,6 @@ async function handleSeeMyScore() {
         uploadedBucket = bucket;
         uploadedKey = key;
 
-        // 1.4 moderate newly-created object only (skip if exists==true)
         const mod = await fetch(MODERATE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -700,12 +707,9 @@ async function handleSeeMyScore() {
         }
       }
     } catch (e) {
-      // Fallback path (only if sign/upload failed): use your upload-image Lambda
-      // Optional: if backend supports, also pass content_hash for server-side dedupe.
       const form = new FormData();
       form.append('file', file.value!);
       form.append('folder', 'YourWindow');
-      // form.append('content_hash', await sha256OfFile(file.value!)); // uncomment if supported
       const up = await fetch(UPLOADER_URL, { method: 'POST', body: form });
       if (!up.ok) {
         const txt = await up.text().catch(() => '');
@@ -719,8 +723,7 @@ async function handleSeeMyScore() {
       if (!uploadedBucket || !uploadedKey) throw new Error('Upload did not return bucket/key.');
     }
 
-
-    // 2) analyze (window trees etc.)
+    // 2) analyze
     const payload = { bucket: uploadedBucket, key: uploadedKey, include_details: true, check_compliance: true }
     const an = await fetch(ANALYZER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     if (!an.ok) { const text = await an.text().catch(() => ''); throw new Error(text || `Analyzer failed (${an.status})`) }
@@ -823,12 +826,23 @@ const GoalBar = defineComponent({
     mode:  { type: String as PropType<'gte' | 'lte'>, required: true }
   },
   setup(props) {
-    // For visualization we normalize track width with max(value, goal).
-    // gte: fail => value<goal, so fill < marker (marker at 100%).
-    // lte: fail => value>goal, so fill = 100% while marker < 100% (fill exceeds marker).
-    const max = computed(() => Math.max(props.value, props.goal))
-    const percent = computed(() => Math.min((props.value / max.value) * 100, 100))
-    const marker = computed(() => (props.goal / max.value) * 100)
+    // Visualization:
+    // - For gte (fail case only): use trackMax = goal * 1.5 so the Goal marker sits ~66.7% along the bar.
+    //   Fill is proportional to value and always stays before the marker.
+    // - For lte (fail case only): fill 100% and place the marker earlier (goal/value).
+    const trackMax = computed(() => {
+      return props.mode === 'gte' ? props.goal * 1.5 : Math.max(props.value, props.goal)
+    })
+    const marker = computed(() => (props.goal / trackMax.value) * 100)
+    const percent = computed(() => {
+      if (props.mode === 'gte') {
+        const p = (props.value / trackMax.value) * 100
+        // small safety cap so the fill does not overlap the marker when value ~ goal
+        return Math.min(p, Math.max(0, marker.value - 1))
+      }
+      // lte fail: we want the bar to exceed the goal marker
+      return 100
+    })
 
     return () => h('div', { class: 'goalbar' }, [
       h('div', { class: 'goalbar-track' }, [
@@ -918,13 +932,12 @@ const GoalBar = defineComponent({
 .image-panel img{ width:100%; border-radius:12px; }
 @media (min-width:900px){ .results-grid{ grid-template-columns:1fr 1fr; } }
 
-/* summary banner (soft gradients) */
-.results-actions{ display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; margin-bottom: 12px; }
-@media (min-width: 900px){ .results-actions{ grid-template-columns: 1fr 1fr; } .actions-right{ justify-self: end; } }
-.results-summary{ display:flex; justify-content:center; align-items:center; text-align:center; padding:14px 16px; border-radius:14px; border:2px solid; font-weight:800; line-height:1.35; gap:10px; }
-.results-summary .summary-icon{ font-size:18px; }
-.results-summary.great{ background:linear-gradient(135deg, #bbf7d0 0%, #86efac 100%); border-color:#16a34a; color:#064e3b; box-shadow: 0 10px 30px rgba(22,163,74,.15); }
-.results-summary.bad{ background:linear-gradient(135deg, #fecaca 0%, #fca5a5 100%); border-color:#dc2626; color:#7f1d1d; box-shadow: 0 10px 30px rgba(220,38,38,.15); }
+/* simple headline (no gradient box) */
+.results-actions{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px; margin-bottom:12px; }
+@media (min-width:900px){ .results-actions{ grid-template-columns:1fr 1fr; } .actions-right{ justify-self:end; } }
+.results-headline{ display:flex; flex-direction:column; gap:4px; }
+.headline-text{ font-size:24px; font-weight:400; color:#111827; line-height:1.35; }
+.headline-sub{ font-size:12px; color:#6b7280; }
 
 /* mini cards */
 .cards-mini{ display: grid; gap: 14px; }
@@ -945,7 +958,7 @@ const GoalBar = defineComponent({
 .mini-ov-actions{ display:flex; gap:10px; }
 .btn.ghost{ background: #fff; color:#064e3b; border:2px solid #064e3b; padding:10px 14px; border-radius:9999px; font-weight:700; font-size:14px; }
 
-/* success/fail soft gradients */
+/* success/fail soft backgrounds */
 .card.mini.ok{ background:linear-gradient(180deg, #dcfce7 0%, #f0fdf4 100%); border-color:#16a34a; box-shadow:0 0 0 3px rgba(22,163,74,.18) inset; }
 .card.mini.bad{ background:linear-gradient(180deg, #fee2e2 0%, #fff1f2 100%); border-color:#dc2626; box-shadow:0 0 0 3px rgba(220,38,38,.18) inset; }
 .park-link{ text-decoration: underline; color:#065f46; }
@@ -955,7 +968,7 @@ const GoalBar = defineComponent({
 .passed-label{ font-size:12px; font-weight:800; color:#15803d; margin-left:6px; align-self:flex-end; }
 
 /* ===== Progress bar with "Goal" marker =====
-   NOTE: These are deep selectors so they apply inside the child component GoalBar. */
+   Deep selectors apply inside the child component GoalBar. */
 :deep(.goalbar){ margin-top:10px; }
 :deep(.goalbar-track){ position:relative; height:10px; background:#f3f4f6; border-radius:999px; overflow:visible; }
 :deep(.goalbar-fill){ height:100%; border-radius:999px; background: linear-gradient(90deg, #f59e0b, #fbbf24); }
