@@ -138,6 +138,23 @@
         </div> 
         </section>
 
+    <!-- Quote: after 3-30-300 -->
+    <section class="cover quote">
+      <div class="quote-wrap">
+        <blockquote class="quote-text">
+          “Green equity is the next frontier. Trees are not a luxury; they’re urban infrastructure for health.”
+        </blockquote>
+        <p class="quote-source">
+          C. Konijnendijk, World Forum on Urban Forests, 2022
+        </p>
+        <img
+          class="quote-img"
+          src="@/assets/konijnendijk.jpeg"
+          alt="Portrait of C. Konijnendijk"
+        />
+      </div>
+    </section>
+
     <!-- nature is missing -->
     <section id="nature-missing" class="nature">
     <div class="nature-wrap">
@@ -777,6 +794,60 @@ p {
   transform: scale(1.02) rotateY(var(--flip-angle, 0));
   transition: transform 0.4s ease;
 }
+
+/* quote section (after 3-30-300) */
+.cover.quote {
+  background: #f8fef9;               
+  padding: 5rem 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.quote-wrap {
+  max-width: 850px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  position: relative;
+}
+
+.quote-text {
+  font-size: clamp(2.5rem, 2vw, 4rem);
+  font-weight: 800;
+  color: #1a2b20;
+  line-height: 1.5;
+  max-width: 700px;
+  position: relative;
+  font-style: italic;
+}
+
+
+.quote-source {
+  color: #4a5d51;
+  font-size: 0.95rem;
+  font-style: italic;
+  margin-top: -0.5rem;
+}
+
+/* Portrait styling */
+.quote-img {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid #eaf4ec;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.quote-img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+
 
 /* nature is missing */
 .nature {
