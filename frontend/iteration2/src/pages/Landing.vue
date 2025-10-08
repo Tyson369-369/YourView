@@ -108,41 +108,30 @@
 
         <!-- 3 cards -->
         <div class="rule-grid">
-          <article class="rule-card">
-            <!-- <img class="icon" :src="new URL('@/assets/green.jpg', import.meta.url)"  /> -->
-            <h3><strong>3</strong><br> Trees from your window</h3>
-            <p>You should be able to see at least 3 trees from your home window for mental wellbeing and connection to
-              nature.</p>
-          </article>
+          <div
+            v-for="(rule, i) in rules"
+            :key="i"
+            class="flip-card"
+            :class="{ flipped: flippedIndex === i }"
+            @click="flipCard(i)"
+          >
+            <div class="flip-inner">
+              <!-- Front side -->
+              <div class="flip-front">
+                <h3>{{ rule.title }}</h3>
+                <span class="hint">Click to learn more</span>
+              </div>
 
-          <article class="rule-card">
-            <!-- <img class="icon" :src="new URL('@/assets/green.jpg', import.meta.url)"  /> -->
-            <h3><strong>30%</strong><br> Neighbourhood canopy</h3>
-            <p>Your local area needs 30% tree canopy coverage to reduce urban heat and improve air quality.</p>
-          </article>
-
-          <article class="rule-card">
-            <!-- <img class="icon" :src="new URL('@/assets/green.jpg', import.meta.url)"  /> -->
-            <h3><strong>300m</strong><br> Green space access</h3>
-            <p>A quality green space should be within 300 metres (5–10 min walk) for regular nature contact.</p>
-          </article>
+              <!-- Back side -->
+              <div class="flip-back">
+                <p>{{ rule.desc }}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- why this matter for melbourne -->
-        <aside class="rule-callout">
-          <div class="tag" aria-hidden="true">!</div>
-          <div>
-            <h4>Why this matters for Melbourne</h4>
-            <p>
-              🔥🔥🔥Melbourne is heating up 🔥🔥🔥
-            </p>
-            <p>
-              Some suburbs are up to 12°C hotter than leafy areas.
-            </p>
-          </div>
-        </aside>
-      </div>
-    </section>
+        </div> 
+        </section>
 
     <!-- nature is missing -->
     <section id="nature-missing" class="nature">
@@ -287,6 +276,28 @@ onMounted(() => {
     })
   })
 })
+
+// 3-30-300 rule
+const rules = [
+  {
+    title: '3 Trees from your window',
+    desc: 'You should be able to see at least 3 trees from your home window for mental wellbeing and connection to nature.'
+  },
+  {
+    title: '30% Neighbourhood canopy',
+    desc: 'Your local area needs 30% tree canopy coverage to reduce urban heat and improve air quality.'
+  },
+  {
+    title: '300m Green space access',
+    desc: 'A quality green space should be within 300 metres (5–10 min walk) for regular nature contact.'
+  }
+]
+
+const flippedIndex = ref(null)
+
+const flipCard = (index) => {
+  flippedIndex.value = flippedIndex.value === index ? null : index
+}
 
 </script>
 
@@ -602,75 +613,80 @@ p {
   margin: 0 auto 2rem;
 }
 
-/* grid of 3 cards */
+/* Flip Card Container */
 .rule-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-  margin-bottom: 1.25rem;
-}
-
-@media (max-width: 900px) {
-  .rule-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .rule-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.rule-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px 18px;
   display: flex;
   flex-direction: column;
-  text-align: center;
-  gap: 10px;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, .08);
-  transition: transform .25s ease, box-shadow .25s ease;
-  min-height: 210px;
+  gap: 1.2rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
 }
 
-.rule-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, .12);
+/* Each card */
+.flip-card {
+  background: transparent;
+  perspective: 1000px; 
+  cursor: pointer;
+  height: 180px;
 }
 
-.rule-card .icon {
-  width: 40px;
-  height: 40px;
+.flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.8s cubic-bezier(0.2, 0.6, 0.3, 1);
+  transform-style: preserve-3d;
   border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-size: 20px;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
 }
 
-.rule-card .icon.blue {
-  background: #edf3ff;
+.flip-card.flipped .flip-inner {
+  transform: rotateY(180deg);
 }
 
-.rule-card .icon.green {
-  background: #eaf7ee;
+/* Front and back sides */
+.flip-front,
+.flip-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #ffffff;
+  color: #14532d;
 }
 
-.rule-card .icon.teal {
-  background: #e9f8f3;
-}
-
-.rule-card h3 {
-  line-height: 1.2;
-  margin: 4px 0 2px;
-  font-size: 1.05rem;
-}
-
-.rule-card p {
-  color: #4c5a53;
+/* Front */
+.flip-front h3 {
   margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.hint {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: #22c55e;
+  font-weight: 500;
+}
+
+/* Back */
+.flip-back {
+  transform: rotateY(180deg);
+  background: #f8fef6;
+  color: #1a2b20;
+  text-align: center;
+  padding: 1.2rem;
+}
+
+.flip-back p {
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 /* callout */
@@ -706,6 +722,10 @@ p {
   color: #4c5a53;
 }
 
+.flip-card:hover .flip-inner {
+  transform: scale(1.02) rotateY(var(--flip-angle, 0));
+  transition: transform 0.4s ease;
+}
 
 /* nature is missing */
 .nature {
