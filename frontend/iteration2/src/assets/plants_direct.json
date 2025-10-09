@@ -1,0 +1,92 @@
+[
+  {
+    "common_name": "Snake Plant (Mother-in-law's Tongue)",
+    "scientific_name": "Dracaena trifasciata",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sansevieria_trifasciata2.jpg?width=1600",
+    "care": "Bright indirect to low light; water sparingly; let soil dry; well-draining mix."
+  },
+  {
+    "common_name": "ZZ Plant",
+    "scientific_name": "Zamioculcas zamiifolia",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Zamioculcas.jpg?width=1600",
+    "care": "Low to bright indirect light; water infrequently; free-draining soil."
+  },
+  {
+    "common_name": "Monstera (Swiss Cheese Plant)",
+    "scientific_name": "Monstera deliciosa",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Monstera_deliciosa2.jpg?width=1600",
+    "care": "Bright indirect; water when top soil dries; add support; airy mix."
+  },
+  {
+    "common_name": "Cast Iron Plant",
+    "scientific_name": "Aspidistra elatior",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Aspidistra_elatior1.jpg?width=1600",
+    "care": "Low light tolerant; moderate watering; very hardy to neglect."
+  },
+  {
+    "common_name": "Aloe Vera",
+    "scientific_name": "Aloe vera",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Aloe_vera_flower.jpg?width=1600",
+    "care": "Full sun\u2013bright light; deep but rare watering; gritty cactus mix."
+  },
+  {
+    "common_name": "English Ivy",
+    "scientific_name": "Hedera helix",
+    "photo_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Hedera_helix_Dover.jpg/640px-Hedera_helix_Dover.jpg?width=1600",
+    "care": "Bright indirect; keep evenly moist; good airflow helps."
+  },
+  {
+    "common_name": "Rosemary",
+    "scientific_name": "Salvia rosmarinus",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Rosmarinus_officinalis2.jpg?width=1600",
+    "care": "Full sun; drought tolerant; avoid waterlogging."
+  },
+  {
+    "common_name": "Thyme",
+    "scientific_name": "Thymus vulgaris",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Thymus_vulgaris0.jpg?width=1600",
+    "care": "Full sun; light watering; sandy, well-drained soil."
+  },
+  {
+    "common_name": "Hardenbergia (False Sarsaparilla)",
+    "scientific_name": "Hardenbergia violacea",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Hardenbergia_violacea1.jpg?width=1600",
+    "care": "Full sun\u2013part shade; moderate water; provide support (climber)."
+  },
+  {
+    "common_name": "Dianella (Flax Lily)",
+    "scientific_name": "Dianella caerulea",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Dianella_caerulea.jpg?width=1600",
+    "care": "Sun or shade; drought tolerant once established; low maintenance."
+  },
+  {
+    "common_name": "Lomandra",
+    "scientific_name": "Lomandra longifolia",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Lomandra_longifolia.jpg?width=1600",
+    "care": "Full sun\u2013shade; very hardy; tolerates drought & poor soils."
+  },
+  {
+    "common_name": "Cordyline (Cabbage Tree)",
+    "scientific_name": "Cordyline australis",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Cordyline_australis.jpg?width=1600",
+    "care": "Full sun\u2013part shade; moderate water; well-drained soil."
+  },
+  {
+    "common_name": "Agave (Century Plant)",
+    "scientific_name": "Agave americana",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Agave_americana_1.jpg?width=1600",
+    "care": "Full sun; very drought tolerant; sandy/gritty soil."
+  },
+  {
+    "common_name": "String of Pearls",
+    "scientific_name": "Curio rowleyanus",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Senecio_rowleyanus.jpg?width=1600",
+    "care": "Bright indirect; allow soil to dry; protect from overwatering."
+  },
+  {
+    "common_name": "Star Jasmine",
+    "scientific_name": "Trachelospermum jasminoides",
+    "photo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Trachelospermum_jasminoides_flowers.jpg?width=1600",
+    "care": "Full sun\u2013part shade; moderate water; climber with support."
+  }
+]
