@@ -116,25 +116,22 @@
           <div
             v-for="(rule, i) in rules"
             :key="i"
-            class="flip-card"
-            :class="{ flipped: flippedIndex === i }"
-            @click="flipCard(i)"
+            class="rule-card"
+            @click="toggleCard(i)"
+            @mouseenter="hovered = i"
+            @mouseleave="hovered = null"
           >
-            <div class="flip-inner">
-              <!-- Front side -->
-              <div class="flip-front">
-                <h3>{{ rule.title }}</h3>
-                <span class="hint">Click and drag to learn more</span>
-              </div>
-
-              <!-- Back side -->
-              <div class="flip-back">
+            <transition name="fade-slide" mode="out-in">
+              <div v-if="activeIndex === i" key="back" class="card-back">
                 <p>{{ rule.desc }}</p>
               </div>
-            </div>
+              <div v-else key="front" class="card-front">
+                <h3>{{ rule.title }}</h3>
+                <span class="hint">Tap to learn more</span>
+              </div>
+            </transition>
           </div>
-        </div>
-
+        </div> 
         </div> 
         </section>
 
@@ -323,7 +320,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => clearInterval(interval))
 
-// 3-30-300 rule card flip 
+// 3-30-300 rule card fade 
 const rules = [
   {
     title: '3 Trees from your window',
@@ -339,10 +336,13 @@ const rules = [
   }
 ]
 
-const flippedIndex = ref(null)
 
-const flipCard = (index) => {
-  flippedIndex.value = flippedIndex.value === index ? null : index
+const hovered = ref(null)
+const activeIndex = ref(null)
+
+const toggleCard = (i) => {
+  // for mobile: toggle on tap
+  activeIndex.value = activeIndex.value === i ? null : i
 }
 
 </script>
@@ -652,8 +652,10 @@ p {
   display: inline-block;
   min-width: 160px;
   text-align: center;
-  color: #0f7b4a;
-  text-underline-offset: 6px;
+  color: #ffffff;
+  background: #0f7b4a;
+  padding: 0.25em 0.5em; 
+  border-radius: 6px;   
   font-weight: 800;
   opacity: 1;
   transform: translateY(0);
@@ -691,50 +693,65 @@ p {
   margin-bottom: 1.5rem;
 }
 
-/* Each card */
-.flip-card {
-  background: transparent;
-  perspective: 1000px; 
-  cursor: pointer;
-  height: 180px;
-}
-
-.flip-inner {
+/* Each rule card */
+.rule-card {
   position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.8s cubic-bezier(0.2, 0.6, 0.3, 1);
-  transform-style: preserve-3d;
+  height: 180px;
   border-radius: 12px;
-}
-
-.flip-card.flipped .flip-inner {
-  transform: rotateY(180deg);
-}
-
-/* Front and back sides */
-.flip-front,
-.flip-back {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  background: #fff;
   color: #14532d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Front */
-.flip-front h3 {
+.rule-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+/* Vue transition */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity .4s ease, transform .4s ease;
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* text styling */
+.card-front h3 {
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.card-back p {
+  font-size: 1.25rem;
+  line-height: 1.4;
+  color: #1a2b20;
+}
+
+/* responsive */
+@media (max-width: 700px) {
+  .rule-grid {
+    gap: 1rem;
+  }
+  .rule-card {
+    height: auto;
+    min-height: 160px;
+    padding: 1.25rem;
+  }
 }
 
 .hint {
@@ -744,19 +761,8 @@ p {
   font-weight: 500;
 }
 
-/* Back */
-.flip-back {
-  transform: rotateY(180deg);
-  background: #f8fef6;
-  color: #1a2b20;
-  text-align: center;
-  padding: 1.2rem;
-}
 
-.flip-back p {
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
+
 
 /* callout */
 .rule-callout {
