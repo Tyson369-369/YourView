@@ -188,11 +188,22 @@
                   </template>
                   <template v-else>
                     <span class="unit">{{ treesCount === 1 ? ' Tree' : ' Trees' }}</span>
+                  </template>
+
+                  <!-- New: status pill -->
+                  <template v-if="treesOK">
                     <span class="passed-label">passed</span>
+                  </template>
+                  <template v-else-if="treesHalf">
+                    <span class="almost-label">Almost There</span>
+                  </template>
+                  <template v-else>
+                    <span class="failed-label">Failed</span>
                   </template>
                 </template>
                 <template v-else>—</template>
               </div>
+
               <div class="mini-sub">from your window</div>
 
               <GoalBar
@@ -236,13 +247,25 @@
                   </template>
                   <template v-else>
                     <span class="unit">%</span>
+                  </template>
+
+                  <!-- New: status pill -->
+                  <template v-if="pass30">
                     <span class="passed-label">passed</span>
+                  </template>
+                  <template v-else-if="canopyHalf">
+                    <span class="almost-label">Almost There</span>
+                  </template>
+                  <template v-else>
+                    <span class="failed-label">Failed</span>
                   </template>
                 </template>
                 <template v-else>
                   <strong>—</strong>
+                  <span class="failed-label">Failed</span>
                 </template>
               </div>
+
 
               <div class="mini-sub">
                 <template v-if="canopyAvailable && canopyArea">from {{ canopyArea }}</template>
@@ -290,9 +313,20 @@
                 </template>
                 <template v-else>
                   <span class="unit"> Meters</span>
+                </template>
+
+                <!-- New: status pill -->
+                <template v-if="pass300">
                   <span class="passed-label">passed</span>
                 </template>
+                <template v-else-if="parkHalf">
+                  <span class="almost-label">Almost There</span>
+                </template>
+                <template v-else>
+                  <span class="failed-label">Failed</span>
+                </template>
               </div>
+
 
               <div class="mini-sub">
                 <template v-if="nearestParkName && parkLink">
@@ -420,6 +454,17 @@ const treesCount = ref<number | null>(null)
 
 /* Pass/fail booleans preserved for background color (OK/BAD) */
 const treesOK = computed(() => (typeof treesCount.value === 'number' ? treesCount.value >= 3 : false))
+
+// --- Half-pass flags (add these) ---
+const treesHalf  = computed(() =>
+  typeof treesCount.value === 'number' && treesCount.value > 0 && treesCount.value < 3
+)
+const canopyHalf = computed(() =>
+  canopyAvailable.value && (canopy.value as number) >= 15 && (canopy.value as number) < 30
+)
+const parkHalf   = computed(() =>
+  typeof parkDistance.value === 'number' && parkDistance.value > 300 && parkDistance.value <= 600
+)
 
 /* ---------- NEW: 3-state icon selection (pass / half / not) ---------- */
 /** Trees icon:
@@ -1022,4 +1067,9 @@ const GoalBar = defineComponent({
 .fade-in-right{ animation: fadeInRight .45s ease-out both; }
 @keyframes fadeInLeft { from { opacity:0; transform: translateX(-14px); } to { opacity:1; transform: translateX(0); } }
 @keyframes fadeInRight{ from { opacity:0; transform: translateX(14px); } to { opacity:1; transform: translateX(0); } }
+/* status pills */
+.passed-label { font-size:12px; font-weight:800; color:#15803d; margin-left:6px; align-self:flex-end; }
+.almost-label { font-size:12px; font-weight:800; color:#f59e0b; margin-left:6px; align-self:flex-end; } /* orange */
+.failed-label { font-size:12px; font-weight:800; color:#b91c1c; margin-left:6px; align-self:flex-end; } /* red */
+
 </style>
