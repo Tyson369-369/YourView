@@ -57,45 +57,6 @@
           <button @click="onSuburbSelected">Show My Suburb</button>
         </div>
 
-        <div class="multi-suburb-search">
-          <label for="suburb-search-input">Select Suburbs:</label>
-          <input
-            id="suburb-search-input"
-            type="text"
-            v-model="searchQuery"
-            placeholder="Search suburbs"
-            @keydown.enter.prevent="addSuburb"
-            @input="filterSuburbs"
-            autocomplete="off"
-          />
-          <ul v-if="filteredSuburbs.length > 0" class="autocomplete-list">
-            <li
-              v-for="(suburb, index) in filteredSuburbs"
-              :key="index"
-              @click="addSuburb(suburb)"
-              class="autocomplete-item"
-            >
-              {{ suburb }}
-            </li>
-          </ul>
-          <div class="selected-suburbs">
-            <span
-              v-for="(suburb, index) in selectedSuburbs"
-              :key="index"
-              class="suburb-chip"
-            >
-              {{ suburb }}
-              <button type="button" @click="removeSuburb(index)">×</button>
-            </span>
-          </div>
-          <div class="note-text">Select up to 3 suburbs</div>
-          <label for="month-select">Select Month (optional):</label>
-          <select id="month-select" v-model="selectedMonth">
-            <option value="">-- Select Month --</option>
-            <option v-for="month in months" :key="month" :value="month">{{ month }}</option>
-          </select>
-        </div>
-
         <!-- Insights Section: Hidden until suburb selected -->
         <div v-if="suburbSelected" class="insights-section">
           <h3>Insights for {{ suburbName }}</h3>
@@ -142,7 +103,7 @@
 <script setup>
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref } from 'vue'
 
 const autocompleteInput = ref(null)
 
@@ -195,63 +156,305 @@ function scrollToHeatmap() {
     heatmapSection.scrollIntoView({ behavior: 'smooth' })
   }
 }
-
-// New reactive state variables for multi-suburb selection
-const selectedSuburbs = ref([])
-const searchQuery = ref('')
-const selectedMonth = ref('')
-
-const availableSuburbs = [
-  'Carlton',
-  'Fitzroy',
-  'Richmond',
-  'South Yarra',
-  'St Kilda',
-  'Brunswick',
-  'Collingwood',
-  'Parkville',
-  'Prahran',
-  'Footscray'
-]
-
-const filteredSuburbs = ref([])
-
-function filterSuburbs() {
-  const query = searchQuery.value.trim().toLowerCase()
-  if (!query) {
-    filteredSuburbs.value = []
-    return
-  }
-  filteredSuburbs.value = availableSuburbs.filter(
-    suburb =>
-      suburb.toLowerCase().includes(query) &&
-      !selectedSuburbs.value.includes(suburb)
-  )
-}
-
-function addSuburb(suburb) {
-  let suburbToAdd = suburb
-  if (typeof suburb === 'object' || suburb === undefined) {
-    suburbToAdd = searchQuery.value.trim()
-  }
-  if (
-    suburbToAdd &&
-    !selectedSuburbs.value.includes(suburbToAdd) &&
-    selectedSuburbs.value.length < 3 &&
-    availableSuburbs.includes(suburbToAdd)
-  ) {
-    selectedSuburbs.value.push(suburbToAdd)
-  }
-  searchQuery.value = ''
-  filteredSuburbs.value = []
-}
-
-function removeSuburb(index) {
-  selectedSuburbs.value.splice(index, 1)
-}
-
-const months = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-]
 </script>
+
+<style scoped>
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.heatmap-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.bg-section {
+  flex: 1;
+  min-height: 100vh;
+  background-size: cover;
+  background-position: center;
+}
+
+/* .bg1 {
+  background-image: url('@/assets/heatmapbg1.png');
+}
+
+.bg2 {
+  background-image: url('@/assets/heatmapbg2.png');
+}
+
+.bg3 {
+  background-image: url('@/assets/heatmapbg3.png');
+} */
+
+.melbourne-city-section {
+  height: 250px;
+  background-image: url('@/assets/City_Melbourne.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 100%;
+}
+
+.intro-text {
+  text-align: left;
+  padding: 3rem 1rem;
+  background: rgba(255, 255, 255, 0.75);
+  font-family: 'Arial', sans-serif;
+  border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.intro-text h2 {
+  color: #00796b;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.intro-text p {
+  color: #2e7d32;
+  font-size: 1.2rem;
+  line-height: 1.6;
+  max-width: 700px;
+  margin: 0 auto 1.5rem auto;
+}
+
+.address-search {
+  display: flex;
+  max-width: 700px;
+  margin: 0 auto;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.address-search input {
+  flex: 1 1 auto;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #00796b;
+  border-radius: 4px;
+  min-width: 0;
+}
+
+.address-search button {
+  padding: 0.5rem 1.5rem;
+  font-size: 1rem;
+  background-color: #00796b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background-color 0.3s ease;
+}
+
+.address-search button:hover {
+  background-color: #004d40;
+}
+
+.content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.text-content {
+  flex: 1;
+  min-width: 300px;
+}
+
+.image-content {
+  flex: 2;
+  min-width: 400px;
+}
+
+.image-content img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.heatmap-section {
+  padding: 3rem 1rem;
+  background: #ffffff;
+  text-align: center;
+  border-radius: 8px;
+  margin: 2rem auto;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.heatmap-section h2 {
+  font-size: 2rem;
+  color: #00796b;
+  margin-bottom: 1.5rem;
+}
+
+.heatmap-placeholder {
+  width: 100%;
+  max-width: 100%;
+  height: 500px;
+  border: 2px dashed #00796b;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  font-size: 1.2rem;
+  background-color: #f9f9f9;
+}
+
+.insights-section {
+  margin-top: 2.5rem;
+  background: #fdf6f0;
+  padding: 2rem 2.5rem 3rem 2.5rem;
+  border-radius: 12px;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.03);
+}
+
+.insights-section h3 {
+  color: #b85c3b;
+  font-weight: 900;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  letter-spacing: 0.05em;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* New styles for insights table and suburb highlight */
+
+.insights-table {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background-color: #f5f5f5;
+  padding: 1rem 2rem;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 700;
+  color: #555;
+  font-size: 1rem;
+  user-select: none;
+}
+
+.insight-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  opacity: 0.7;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+/* Reduce emoji size and opacity */
+.insight-header > *:first-child {
+  font-size: 1.2rem;
+  opacity: 0.6;
+}
+
+/* Suburb highlight row */
+
+.suburb-highlight {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background-color: #ffffff;
+  padding: 1.8rem 2rem;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 4px 12px rgba(231, 111, 81, 0.15);
+  gap: 0 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.highlight-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.highlight-number {
+  font-size: 2.8rem;
+  font-weight: 900;
+  line-height: 1;
+  user-select: text;
+}
+
+.accent-orange {
+  color: #e76f51;
+}
+
+.accent-teal {
+  color: #00796b;
+}
+
+  .highlight-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555555;
+    margin-top: 0.25rem;
+    text-transform: lowercase;
+    user-select: text;
+  }
+
+/* Add spacing for the address search below the map */
+.search-below-map {
+  margin-top: 2rem;
+}
+
+.scroll-arrow {
+  font-size: 2.5rem;
+  color: #00796b;
+  text-align: center;
+  cursor: pointer;
+  margin: 1rem 0;
+  animation: bounce 1.5s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+</style>
+
+.legend-explanation {
+  margin-top: 2rem;
+  text-align: left;
+  background: #fdfdfd;
+  border: 1px solid #ddd;
+  padding: 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.legend-explanation h3 {
+  margin-bottom: 1rem;
+  color: #00796b;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.legend-color {
+  display: inline-block;
+  width: 20px;
+  height: 12px;
+  margin-right: 8px;
+  border: 1px solid #ccc;
+  vertical-align: middle;
+}
