@@ -13,15 +13,16 @@
               Cities get hot because concrete and roads soak up the sun. Trees give shade
               and act like nature’s air-conditioners, making neighborhoods up to 4° cooler.
             </p>
+            <div class="address-search">
+              <input type="text" placeholder="Enter your address" ref="autocompleteInput" />
+              <button @click="onSuburbSelected">Show My Suburb</button>
+            </div>
           </div>
           <div class="image-content">
             <img src="@/assets/UHI_Illustration.png" alt="Urban Heat Island Illustration" />
           </div>
         </div>
       </section>
-      <div class="scroll-arrow" @click="scrollToHeatmap">
-        ↓
-      </div>
 
       <!-- Heatmap Section -->
       <section class="heatmap-section">
@@ -34,27 +35,6 @@
             frameborder="0" 
             style="border-radius: 8px;">
           </iframe>
-        </div>
-
-        <!-- Legend Explanation -->
-        <div class="legend-explanation">
-          <h3>What the Colors Mean</h3>
-          <p>
-            The heat map shows the average daytime land surface temperature across Melbourne suburbs.
-            <span class="legend-color" style="background-color:#fee5d9;"></span> 
-            <strong>Less than 26.1°C</strong> – Cooler areas, often greener or less urbanised.<br/>
-            <span class="legend-color" style="background-color:#fcae91;"></span> 
-            <strong>26.1°C to 30.1°C</strong> – Moderately warm, typical suburban zones.<br/>
-            <span class="legend-color" style="background-color:#fb6a4a;"></span> 
-            <strong>30.1°C to 34.3°C</strong> – Hotter built-up areas with limited green cover.<br/>
-            <span class="legend-color" style="background-color:#cb181d;"></span> 
-            <strong>34.3°C or more</strong> – Extreme heat pockets, often dense urban or industrial zones.
-          </p>
-        </div>
-
-        <div class="address-search search-below-map">
-          <input ref="autocompleteInput" type="text" placeholder="Enter your address" />
-          <button @click="onSuburbSelected">Show My Suburb</button>
         </div>
 
         <!-- Insights Section: Hidden until suburb selected -->
@@ -149,13 +129,6 @@ function onSuburbSelected() {
     warmingRate: `${warmingRate}°F per decade higher`
   }
 }
-
-function scrollToHeatmap() {
-  const heatmapSection = document.querySelector('.heatmap-section')
-  if (heatmapSection) {
-    heatmapSection.scrollIntoView({ behavior: 'smooth' })
-  }
-}
 </script>
 
 <style scoped>
@@ -178,7 +151,7 @@ function scrollToHeatmap() {
   background-position: center;
 }
 
-/* .bg1 {
+.bg1 {
   background-image: url('@/assets/heatmapbg1.png');
 }
 
@@ -188,7 +161,7 @@ function scrollToHeatmap() {
 
 .bg3 {
   background-image: url('@/assets/heatmapbg3.png');
-} */
+}
 
 .melbourne-city-section {
   height: 250px;
@@ -398,63 +371,12 @@ function scrollToHeatmap() {
   color: #00796b;
 }
 
-  .highlight-text {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #555555;
-    margin-top: 0.25rem;
-    text-transform: lowercase;
-    user-select: text;
-  }
-
-/* Add spacing for the address search below the map */
-.search-below-map {
-  margin-top: 2rem;
-}
-
-.scroll-arrow {
-  font-size: 2.5rem;
-  color: #00796b;
-  text-align: center;
-  cursor: pointer;
-  margin: 1rem 0;
-  animation: bounce 1.5s infinite;
-}
-
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-10px); }
-  60% { transform: translateY(-5px); }
+.highlight-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #555555;
+  margin-top: 0.25rem;
+  text-transform: lowercase;
+  user-select: text;
 }
 </style>
-
-.legend-explanation {
-  margin-top: 2rem;
-  text-align: left;
-  background: #fdfdfd;
-  border: 1px solid #ddd;
-  padding: 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  line-height: 1.6;
-  color: #333;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.legend-explanation h3 {
-  margin-bottom: 1rem;
-  color: #00796b;
-  font-size: 1.3rem;
-  font-weight: 700;
-}
-
-.legend-color {
-  display: inline-block;
-  width: 20px;
-  height: 12px;
-  margin-right: 8px;
-  border: 1px solid #ccc;
-  vertical-align: middle;
-}
