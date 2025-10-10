@@ -64,12 +64,13 @@
             type="text"
             v-model="searchQuery"
             placeholder="Search suburbs"
-            @keydown.enter.prevent="addSuburb(searchQuery.trim())"
+            @keydown.enter.prevent="addSuburb"
+            @input="filterSuburbs"
             autocomplete="off"
           />
-          <ul v-if="filteredSuburbOptions.length > 0" class="autocomplete-list">
+          <ul v-if="filteredSuburbs.length > 0" class="autocomplete-list">
             <li
-              v-for="(suburb, index) in filteredSuburbOptions"
+              v-for="(suburb, index) in filteredSuburbs"
               :key="index"
               @click="addSuburb(suburb)"
               class="autocomplete-item"
@@ -94,7 +95,6 @@
             <option v-for="month in months" :key="month" :value="month">{{ month }}</option>
           </select>
         </div>
-      
 
         <!-- Insights Section: Hidden until suburb selected -->
         <div v-if="suburbSelected" class="insights-section">
@@ -142,12 +142,7 @@
 <script setup>
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { onMounted, ref, computed, watch } from 'vue'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase = createClient(supabaseUrl, supabaseKey)
+import { onMounted, ref, computed } from 'vue'
 
 const autocompleteInput = ref(null)
 
@@ -178,12 +173,8 @@ function getRandomInt(min, max) {
 }
 
 function onSuburbSelected() {
-  if (selectedSuburbs.value.length === 0) {
-    alert("Please select at least one suburb.")
-    return
-  }
   suburbSelected.value = true
-  suburbName.value = selectedSuburbs.value.join(', ')
+  suburbName.value = autocompleteInput.value.value || "Selected Suburb"
 
   const temperatureDifference = getRandomFloat(1.5, 4.0, 1)
   const hotDays = getRandomInt(2, 10)
@@ -205,59 +196,62 @@ function scrollToHeatmap() {
   }
 }
 
-// Reactive state variables for multi-suburb selection and dynamic suburbs
+// New reactive state variables for multi-suburb selection
 const selectedSuburbs = ref([])
 const searchQuery = ref('')
-const suburbs = ref([]) // fetched from supabase
 const selectedMonth = ref('')
 
-async function fetchSuburbs() {
-  const { data, error } = await supabase
-    .from('uhi_monthly_summary')
-    .select('suburb')
-    .neq('suburb', null)
-    .limit(1000) // limit to reasonable number
-  if (error) {
-    console.error('Error fetching suburbs:', error)
-    return
-  }
-  const uniqueSuburbs = Array.from(new Set(data.map(item => item.suburb))).sort()
-  suburbs.value = uniqueSuburbs
-}
+const availableSuburbs = [
+  'Carlton',
+  'Fitzroy',
+  'Richmond',
+  'South Yarra',
+  'St Kilda',
+  'Brunswick',
+  'Collingwood',
+  'Parkville',
+  'Prahran',
+  'Footscray'
+]
 
-onMounted(() => {
-  fetchSuburbs()
-})
+const filteredSuburbs = ref([])
 
-const filteredSuburbOptions = computed(() => {
+function filterSuburbs() {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) {
-    return []
+    filteredSuburbs.value = []
+    return
   }
-  return suburbs.value
-    .filter(suburb => suburb.toLowerCase().includes(query) && !selectedSuburbs.value.includes(suburb))
-    .slice(0, 5)
-})
+  filteredSuburbs.value = availableSuburbs.filter(
+    suburb =>
+      suburb.toLowerCase().includes(query) &&
+      !selectedSuburbs.value.includes(suburb)
+  )
+}
 
 function addSuburb(suburb) {
+  let suburbToAdd = suburb
+  if (typeof suburb === 'object' || suburb === undefined) {
+    suburbToAdd = searchQuery.value.trim()
+  }
   if (
-    suburb &&
-    !selectedSuburbs.value.includes(suburb) &&
+    suburbToAdd &&
+    !selectedSuburbs.value.includes(suburbToAdd) &&
     selectedSuburbs.value.length < 3 &&
-    suburbs.value.includes(suburb)
+    availableSuburbs.includes(suburbToAdd)
   ) {
-    selectedSuburbs.value.push(suburb)
+    selectedSuburbs.value.push(suburbToAdd)
   }
   searchQuery.value = ''
+  filteredSuburbs.value = []
 }
 
 function removeSuburb(index) {
   selectedSuburbs.value.splice(index, 1)
 }
+
 const months = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ]
 </script>
-
-
