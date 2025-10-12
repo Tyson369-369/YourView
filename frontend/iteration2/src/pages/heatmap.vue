@@ -399,16 +399,48 @@ onMounted(async () => {
       attributionControl: true
     }).setView([-37.8136, 144.9631], 11)
 
+    // 🧭 Add Reset View Control (visually aligned with zoom controls, with SVG icon)
+    const resetViewControl = L.Control.extend({
+      options: { position: 'topleft' },
+      onAdd: function () {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-reset');
+        container.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:auto;">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1 2.13-9"></path>
+          </svg>
+        `;
+        Object.assign(container.style, {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'white',
+          cursor: 'pointer',
+          width: '34px',
+          height: '34px',
+          textAlign: 'center',
+          borderTop: 'none',
+          borderRadius: '0 0 4px 4px',
+          marginTop: '-1px',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+          transition: 'background 0.2s ease'
+        });
+        container.onmouseenter = () => { container.style.backgroundColor = '#f0f0f0'; };
+        container.onmouseleave = () => { container.style.backgroundColor = 'white'; };
+        container.onclick = function (e) {
+          e.preventDefault();
+          map.setView([-37.8136, 144.9631], 11); // Default Melbourne view
+          map.closePopup();
+        };
+        return container;
+      }
+    });
+    map.addControl(new resetViewControl());
+
     // Load suburbs before rendering map for month
     await loadSuburbs();
     // 🟢 Automatically render map for selected month on first load
     await updateMapForMonth();
-
-    // Optional: add marker for CBD
-    L.marker([-37.8136, 144.9631])
-      .addTo(map)
-      .bindPopup('Melbourne CBD<br>Urban Heat Zone')
-      .openPopup()
 
     // Invalidate size after rendering
     setTimeout(() => {
@@ -583,8 +615,24 @@ async function zoomToSuburb() {
     return;
   }
   const geoField = data[0].geom_json;
-  const geo = L.geoJSON(typeof geoField === 'string' ? JSON.parse(geoField) : geoField);
-  map.fitBounds(geo.getBounds(), { padding: [30, 30] });
+  const geo = typeof geoField === 'string' ? JSON.parse(geoField) : geoField;
+  const layer = L.geoJSON(geo);
+  map.fitBounds(layer.getBounds(), { padding: [30, 30] });
+
+  // 🌟 Animated tracer outline around selected suburb
+  const borderLayer = L.geoJSON(geo, {
+    style: {
+      color: '#00e676',
+      weight: 4,
+      opacity: 1,
+      className: 'suburb-trace-border'
+    }
+  }).addTo(map);
+
+  // Remove after 4s
+  setTimeout(() => {
+    map.removeLayer(borderLayer);
+  }, 4000);
 }
 
 </script>
@@ -1342,6 +1390,26 @@ async function zoomToSuburb() {
   }
 }
 
+</style>
+<style scoped>
+:deep(.suburb-trace-border) {
+  stroke: #00ffc3;
+  stroke-width: 4;
+  stroke-opacity: 1;
+  animation: pulseGlow 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px #00ffc3);
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    stroke-opacity: 0.6;
+    filter: drop-shadow(0 0 5px #00ffc3) drop-shadow(0 0 10px #00ffc3);
+  }
+  50% {
+    stroke-opacity: 1;
+    filter: drop-shadow(0 0 15px #00ffc3) drop-shadow(0 0 30px #00ffc3);
+  }
+}
 </style>
 <style scoped>
 .suburb-autocomplete {
