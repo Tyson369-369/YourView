@@ -1,4 +1,5 @@
 <template>
+  <Header />
   <div class="landing">
     <!-- HERO (pinned) -->
     <section class="hero pinned">
@@ -184,6 +185,7 @@ import 'swiper/css/navigation'
 import gsap from 'gsap'
 import Footer from '@/components/Footer.vue'
 import { useRouter } from 'vue-router'
+import Header from '@/components/Header.vue';
 
 
 
