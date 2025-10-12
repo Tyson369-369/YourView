@@ -161,19 +161,6 @@
       </div>
     </div>
 
-    <!-- Warning when trees < 3 (we still show results; uploaded image is deleted) -->
-    <!-- <div
-      v-if="typeof treesCount === 'number' && treesCount < 3"
-      class="alert warn"
-      role="status"
-      aria-live="polite"
-      style="margin: 10px 0 6px;"
-    >
-      <strong>Not enough trees:</strong>
-      We detected {{ treesCount }} {{ treesCount === 1 ? 'tree' : 'trees' }}.
-      The uploaded image has been removed from our storage. Results below are for reference only.
-    </div> -->
-
     <!-- Two columns: image (left) + cards (right) with fade-in -->
     <div class="results-grid">
       <div class="panel image-panel fade-in-left">
@@ -182,13 +169,14 @@
 
       <div class="panel fade-in-right">
         <div class="cards-mini">
-          <!-- ========== 3: visible trees ========== -->
+          <!-- ========== 3: visible trees (icon uses 3-state; background still pass/fail) ========== -->
           <div class="card mini" :class="{ ok: treesOK, bad: !treesOK, show: showTips3 }">
             <div class="mini-inner">
               <div class="mini-head">
                 <span class="mini-title">Tree Visible</span>
                 <span class="info-dot" aria-label="At least 3 trees should be visible" title="At least 3 trees should be visible">i</span>
-                <img class="side-icon" :src="treesOK ? icon3Pass : icon3Fail" alt="3-rule" />
+                <!-- CHANGED: use computed treeIcon for 3-state image -->
+                <img class="side-icon" :src="treeIcon" alt="3-rule" />
               </div>
 
               <div class="mini-value">
@@ -200,14 +188,24 @@
                   </template>
                   <template v-else>
                     <span class="unit">{{ treesCount === 1 ? ' Tree' : ' Trees' }}</span>
+                  </template>
+
+                  <!-- New: status pill -->
+                  <template v-if="treesOK">
                     <span class="passed-label">passed</span>
+                  </template>
+                  <template v-else-if="treesHalf">
+                    <span class="almost-label">Almost There</span>
+                  </template>
+                  <template v-else>
+                    <span class="failed-label">Failed</span>
                   </template>
                 </template>
                 <template v-else>—</template>
               </div>
+
               <div class="mini-sub">from your window</div>
 
-              <!-- show progress bar only if NOT passed (gte goal 3) -->
               <GoalBar
                 v-if="typeof treesCount==='number' && treesCount < 3"
                 :value="treesCount"
@@ -231,13 +229,14 @@
             </div>
           </div>
 
-          <!-- ========== 30: canopy cover (2 decimals; CBD outside shows message) ========== -->
+          <!-- ========== 30: canopy cover (icon uses 3-state; background still pass/fail if available) ========== -->
           <div class="card mini" :class="{ ok: pass30, bad: !pass30 && canopyAvailable, show: showTips30 }">
             <div class="mini-inner">
               <div class="mini-head">
                 <span class="mini-title">Canopy Cover</span>
                 <span class="info-dot" aria-label="Aim for 30% canopy cover" title="Aim for 30% canopy cover">i</span>
-                <img class="side-icon" :src="canopyAvailable ? (pass30 ? icon30Pass : icon30Fail) : icon30Fail" alt="30-rule" />
+                <!-- CHANGED: use computed canopyIcon for 3-state image -->
+                <img class="side-icon" :src="canopyIcon" alt="30-rule" />
               </div>
 
               <div class="mini-value">
@@ -248,13 +247,25 @@
                   </template>
                   <template v-else>
                     <span class="unit">%</span>
+                  </template>
+
+                  <!-- New: status pill -->
+                  <template v-if="pass30">
                     <span class="passed-label">passed</span>
+                  </template>
+                  <template v-else-if="canopyHalf">
+                    <span class="almost-label">Almost There</span>
+                  </template>
+                  <template v-else>
+                    <span class="failed-label">Failed</span>
                   </template>
                 </template>
                 <template v-else>
                   <strong>—</strong>
+                  <span class="failed-label">Failed</span>
                 </template>
               </div>
+
 
               <div class="mini-sub">
                 <template v-if="canopyAvailable && canopyArea">from {{ canopyArea }}</template>
@@ -262,7 +273,6 @@
                 <template v-else>Outside Melbourne CBD — canopy not available</template>
               </div>
 
-              <!-- show progress bar only if NOT passed (gte goal 30) -->
               <GoalBar
                 v-if="canopyAvailable && typeof canopy==='number' && canopy < 30"
                 :value="canopy || 0"
@@ -286,13 +296,14 @@
             </div>
           </div>
 
-          <!-- ========== 300: nearest park (lte is better; fail shows bar beyond Goal) ========== -->
+          <!-- ========== 300: nearest park distance (icon uses 3-state; background still pass/fail) ========== -->
           <div class="card mini" :class="{ ok: pass300, bad: !pass300, show: showTips300 }">
             <div class="mini-inner">
               <div class="mini-head">
                 <span class="mini-title">Nearest Park</span>
                 <span class="info-dot" aria-label="Target is within 300 meters" title="Target is within 300 meters">i</span>
-                <img class="side-icon" :src="pass300 ? icon300Pass : icon300Fail" alt="300-rule" />
+                <!-- CHANGED: use computed distIcon for 3-state image -->
+                <img class="side-icon" :src="distIcon" alt="300-rule" />
               </div>
 
               <div class="mini-value">
@@ -302,9 +313,20 @@
                 </template>
                 <template v-else>
                   <span class="unit"> Meters</span>
+                </template>
+
+                <!-- New: status pill -->
+                <template v-if="pass300">
                   <span class="passed-label">passed</span>
                 </template>
+                <template v-else-if="parkHalf">
+                  <span class="almost-label">Almost There</span>
+                </template>
+                <template v-else>
+                  <span class="failed-label">Failed</span>
+                </template>
               </div>
+
 
               <div class="mini-sub">
                 <template v-if="nearestParkName && parkLink">
@@ -315,7 +337,6 @@
                 <template v-else>from your house</template>
               </div>
 
-              <!-- show progress bar only if NOT passed (lte goal 300) -->
               <GoalBar
                 v-if="typeof parkDistance==='number' && parkDistance > 300"
                 :value="parkDistance"
@@ -358,11 +379,9 @@
 
 <script setup lang="ts">
 /**
- * Changes in this revision:
- * 1) Replace gradient summary banner with plain headline + gray subline.
- * 2) GoalBar for gte goals now anchors the "Goal" marker ~2/3 along the track (goal * 1.5 scaling).
- * 3) Side icons swap based on pass/fail using the six new assets in /assets.
- * 4) Keep all previous behaviors (upload, moderation, analysis, park link, etc.).
+ * This version adds 3-state icons (pass / half / not passed) for 3-30-300 rules.
+ * - We import 3 extra "not passed" icons and compute which one to show per card.
+ * - Card background classes remain pass/fail to keep previous look-and-feel.
  */
 import { onMounted, onUnmounted, ref, computed, defineComponent, h } from 'vue'
 import type { PropType } from 'vue'
@@ -382,14 +401,21 @@ import img23 from '@/assets/image 130.png'
 import img27 from '@/assets/image 131.png'
 import img28 from '@/assets/image 132.png'
 
-/* ---------- New side icons (pass/fail variants) ---------- */
-import icon3Pass from '@/assets/3Trees passed icon.png'
-import icon3Fail from '@/assets/3Trees not passed icon.png'
+/* ---------- Side icons: pass / half / NOT passed (NEW) ---------- */
+// Trees (3-rule)
+import icon3Pass from '@/assets/3 passed icon.png'
+import icon3Half from '@/assets/3 half passed icon.png'
+import icon3Not  from '@/assets/3 not passed icon.png'
+// Canopy (30-rule)
 import icon30Pass from '@/assets/30 passed icon.png'
-import icon30Fail from '@/assets/30 not passed icon.png'
-import icon300Pass from '@/assets/300m passed icon.png'
-import icon300Fail from '@/assets/300m not passed icon.png'
+import icon30Half from '@/assets/30 half passed icon.png'
+import icon30Not  from '@/assets/30 not passed icon.png'
+// Distance (300-rule)
+import icon300Pass from '@/assets/300 passed icon.png'
+import icon300Half from '@/assets/300 half passed icon.png'
+import icon300Not  from '@/assets/300 not passed icon.png'
 
+/* ---------- carousel state ---------- */
 const images = [
   { src: img23, alt: 'Window 1' },
   { src: img27, alt: 'Window 2' },
@@ -425,68 +451,81 @@ const error = ref<string | null>(null)
 /* ---------- Results ---------- */
 const showResults = ref(false)
 const treesCount = ref<number | null>(null)
+
+/* Pass/fail booleans preserved for background color (OK/BAD) */
 const treesOK = computed(() => (typeof treesCount.value === 'number' ? treesCount.value >= 3 : false))
 
-/* File pick (JPG/PNG) */
-function onFileSelected(e: Event) {
-  const input = e.target as HTMLInputElement
-  const f = input.files?.[0] ?? null
-  error.value = null
-  treesCount.value = null
-  showResults.value = false
+// --- Half-pass flags (add these) ---
+const treesHalf  = computed(() =>
+  typeof treesCount.value === 'number' && treesCount.value > 0 && treesCount.value < 3
+)
+const canopyHalf = computed(() =>
+  canopyAvailable.value && (canopy.value as number) >= 15 && (canopy.value as number) < 30
+)
+const parkHalf   = computed(() =>
+  typeof parkDistance.value === 'number' && parkDistance.value > 300 && parkDistance.value <= 600
+)
 
-  if (!f) {
-    if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
-    previewUrl.value = null
-    file.value = null
-    return
+/* ---------- NEW: 3-state icon selection (pass / half / not) ---------- */
+/** Trees icon:
+ *  - >=3  -> pass
+ *  - 1..2 -> half
+ *  - 0 or not detected -> not passed
+ */
+const treeIcon = computed(() => {
+  if (typeof treesCount.value === 'number') {
+    if (treesCount.value >= 3) return icon3Pass
+    if (treesCount.value > 0)  return icon3Half
+    return icon3Not
   }
-  const ok = /\.(jpe?g|png)$/i.test(f.name) || /^image\//i.test(f.type)
-  if (!ok) {
-    if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
-    previewUrl.value = null
-    file.value = null
-    error.value = 'Only JPG and PNG are allowed.'
-    return
-  }
-  file.value = f
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
-  previewUrl.value = URL.createObjectURL(f)
-}
+  return icon3Not
+})
 
-/* ---------- Helper: parse Lambda proxy response ---------- */
-async function parseMaybeLambdaProxyResponse(res: Response) {
-  const data = await res.json().catch(() => null)
-  if (!data) return null
-  if ('statusCode' in (data as any) && 'body' in (data as any) && typeof (data as any).body === 'string') {
-    try { return JSON.parse((data as any).body) } catch { return data }
-  }
-  return data
-}
-
-/* ---------- Google & data sources ---------- */
-const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
-const SB_URL = import.meta.env.VITE_SUPABASE_URL as string
-const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-
-const address = ref<string>('')
-const predictions = ref<any[]>([])
-const predOpen = ref<boolean>(false)
-const lat = ref<number | null>(null)
-const lng = ref<number | null>(null)
-
-const canopy = ref<number | null>(null) // null means "no data (e.g., outside CBD)"
+/** Canopy derived / display */
+const canopy = ref<number | null>(null) // null => outside CBD (no data)
 const canopyArea = ref<string>('')
+
+/** Available means we have a number; still can be 0 */
 const canopyAvailable = computed(() => typeof canopy.value === 'number' && !Number.isNaN(canopy.value))
-const canopyDisplay = computed(() => canopyAvailable.value ? (canopy.value as number).toFixed(2) : '—') // 2 decimals
+/** Two-decimals number or '—' */
+const canopyDisplay = computed(() => canopyAvailable.value ? (canopy.value as number).toFixed(2) : '—')
+/** Original pass (>=30) used for background color */
+const pass30 = computed(() => canopyAvailable.value && (canopy.value as number) >= 30)
+/** NEW: Canopy icon with 3 states:
+ *  - >=30% -> pass
+ *  - 15%.. <30% -> half
+ *  - 0% or no data (outside CBD) -> not passed
+ */
+const canopyIcon = computed(() => {
+  if (!canopyAvailable.value) return icon30Not
+  const v = canopy.value as number
+  if (v >= 30) return icon30Pass
+  if (v >= 15) return icon30Half
+  return icon30Not
+})
+
+/** Park distance + names */
 const parkDistance = ref<number>(9999)
 const nearestParkName = ref<string>('')
 const nearestParkLat = ref<number | null>(null)
 const nearestParkLng = ref<number | null>(null)
 const nearestParkPlaceId = ref<string | null>(null)
 
-const pass30 = computed(() => canopyAvailable.value && (canopy.value as number) >= 30)
+/** Original pass (<=300) used for background color */
 const pass300 = computed(() => parkDistance.value <= 300)
+/** NEW: Distance icon with 3 states:
+ *  - <=300m -> pass
+ *  - (300, 600] -> half
+ *  - >600m -> not passed
+ */
+const distIcon = computed(() => {
+  const d = Number(parkDistance.value || 0)
+  if (d <= 300) return icon300Pass
+  if (d <= 600) return icon300Half
+  return icon300Not
+})
+
+/** Summary line preserved */
 const passes = computed(() => {
   let n = 0
   n += treesOK.value ? 1 : 0
@@ -499,6 +538,7 @@ const summaryText = computed(() => passes.value >= 2
   : 'Looks like your area needs more green space.'
 )
 
+/** Park link preserved */
 const parkLink = computed(() => {
   const name = nearestParkName.value?.trim()
   const pid = nearestParkPlaceId.value?.trim() || ''
@@ -509,6 +549,9 @@ const parkLink = computed(() => {
   if (name) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}`
   return ''
 })
+
+/** Address short preserved */
+const address = ref<string>('')
 const addressShort = computed(() => {
   const a = (address.value || '').trim()
   if (!a) return ''
@@ -517,7 +560,17 @@ const addressShort = computed(() => {
   return parts[0] || ''
 })
 
-/* Google Places & Maps bootstrap */
+/* ---------- Google & data sources ---------- */
+const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
+const SB_URL   = import.meta.env.VITE_SUPABASE_URL as string
+const SB_KEY   = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
+const predictions = ref<any[]>([])
+const predOpen = ref<boolean>(false)
+const lat = ref<number | null>(null)
+const lng = ref<number | null>(null)
+
+/* Google Places bootstrap (unchanged) */
 let googleLoaded = false
 let autoService: any = null
 let detailsService: any = null
@@ -575,57 +628,14 @@ async function selectPrediction(p: any) {
 }
 function onAddressBlur() { setTimeout(() => { predOpen.value = false }, 120) }
 
-/* Nearest park (Places Nearby) */
-async function computeNearestParkDistance(lon: number, latNum: number): Promise<number> {
-  const url = 'https://places.googleapis.com/v1/places:searchNearby'
-  const body = {
-    includedTypes: ['park'],
-    maxResultCount: 1,
-    locationRestriction: { circle: { center: { latitude: latNum, longitude: lon }, radius: 5000 } },
-    rankPreference: 'DISTANCE'
+/* ---------- Helper: parse Lambda proxy response ---------- */
+async function parseMaybeLambdaProxyResponse(res: Response) {
+  const data = await res.json().catch(() => null)
+  if (!data) return null
+  if ('statusCode' in (data as any) && 'body' in (data as any) && typeof (data as any).body === 'string') {
+    try { return JSON.parse((data as any).body) } catch { return data }
   }
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': GMAPS_KEY,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.location'
-    },
-    body: JSON.stringify(body)
-  })
-  if (!res.ok) throw new Error('Nearby search failed')
-  const data = await res.json()
-  const place = data.places?.[0]
-  if (!place?.location) throw new Error('No nearby park found')
-
-  nearestParkName.value = place.displayName?.text || 'Nearest park'
-  nearestParkLat.value = place.location.latitude ?? null
-  nearestParkLng.value = place.location.longitude ?? null
-  nearestParkPlaceId.value = place.id ?? null
-
-  await loadGoogleMaps()
-  const g = (window as any).google
-  const a = new g.maps.LatLng(latNum, lon)
-  const b = new g.maps.LatLng(place.location.latitude, place.location.longitude)
-  const d = g.maps.geometry.spherical.computeDistanceBetween(a, b)
-  return Math.round(d)
-}
-
-/* Supabase RPC: canopy by coordinate (null when outside CBD) */
-async function getCanopy(lon: number, latNum: number): Promise<{ pct: number | null; area?: string | null }> {
-  const res = await fetch(`${SB_URL}/rest/v1/rpc/get_canopy_cover_by_sub`, {
-    method: 'POST',
-    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p_lon: lon, p_lat: latNum })
-  })
-  if (!res.ok) throw new Error('Canopy RPC failed')
-  const data = await res.json()
-  const payload = Array.isArray(data) ? (data[0]?.get_canopy_cover_by_sub ?? data[0]) : (data.get_canopy_cover_by_sub ?? data)
-
-  if (!payload || payload.sa2_name21 == null || payload.canopy_pct == null) {
-    return { pct: null, area: null } // outside CBD / no data
-  }
-  return { pct: Number(payload.canopy_pct), area: payload.sa2_name21 ?? null }
+  return data
 }
 
 /* ---------- Toast ---------- */
@@ -639,7 +649,7 @@ function showToast(msg: string, type: 'info' | 'success' | 'error' = 'info', ms 
   toastTimer = window.setTimeout(() => { toastVisible.value = false; toastTimer = null }, ms)
 }
 
-// Compute SHA-256 of a File (content-addressing)
+/* ---------- Main flow: upload → moderate → analyze → canopy/park ---------- */
 async function sha256OfFile(file: File) {
   const buf = await file.arrayBuffer();
   const hash = await crypto.subtle.digest('SHA-256', buf);
@@ -648,7 +658,33 @@ async function sha256OfFile(file: File) {
     .join('');
 }
 
-/* ---------- Main flow: S3 direct upload → moderation → analyze → 30/300 ---------- */
+/* File pick (JPG/PNG) */
+function onFileSelected(e: Event) {
+  const input = e.target as HTMLInputElement
+  const f = input.files?.[0] ?? null
+  error.value = null
+  treesCount.value = null
+  showResults.value = false
+
+  if (!f) {
+    if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = null
+    file.value = null
+    return
+  }
+  const ok = /\.(jpe?g|png)$/i.test(f.name) || /^image\//i.test(f.type)
+  if (!ok) {
+    if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = null
+    file.value = null
+    error.value = 'Only JPG and PNG are allowed.'
+    return
+  }
+  file.value = f
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+  previewUrl.value = URL.createObjectURL(f)
+}
+
 async function handleSeeMyScore() {
   error.value = null
   treesCount.value = null
@@ -786,6 +822,59 @@ async function safeDelete(bucket: string, key: string, reason?: string) {
   }
 }
 
+/* Supabase RPC: canopy by coordinate (null when outside CBD) */
+async function getCanopy(lon: number, latNum: number): Promise<{ pct: number | null; area?: string | null }> {
+  const res = await fetch(`${SB_URL}/rest/v1/rpc/get_canopy_cover_by_sub`, {
+    method: 'POST',
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_lon: lon, p_lat: latNum })
+  })
+  if (!res.ok) throw new Error('Canopy RPC failed')
+  const data = await res.json()
+  const payload = Array.isArray(data) ? (data[0]?.get_canopy_cover_by_sub ?? data[0]) : (data.get_canopy_cover_by_sub ?? data)
+
+  if (!payload || payload.sa2_name21 == null || payload.canopy_pct == null) {
+    return { pct: null, area: null } // outside CBD / no data
+  }
+  return { pct: Number(payload.canopy_pct), area: payload.sa2_name21 ?? null }
+}
+
+/* Nearest park (Places Nearby) */
+async function computeNearestParkDistance(lon: number, latNum: number): Promise<number> {
+  const url = 'https://places.googleapis.com/v1/places:searchNearby'
+  const body = {
+    includedTypes: ['park'],
+    maxResultCount: 1,
+    locationRestriction: { circle: { center: { latitude: latNum, longitude: lon }, radius: 5000 } },
+    rankPreference: 'DISTANCE'
+  }
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': GMAPS_KEY,
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.location'
+    },
+    body: JSON.stringify(body)
+  })
+  if (!res.ok) throw new Error('Nearby search failed')
+  const data = await res.json()
+  const place = data.places?.[0]
+  if (!place?.location) throw new Error('No nearby park found')
+
+  nearestParkName.value = place.displayName?.text || 'Nearest park'
+  nearestParkLat.value = place.location.latitude ?? null
+  nearestParkLng.value = place.location.longitude ?? null
+  nearestParkPlaceId.value = place.id ?? null
+
+  await loadGoogleMaps()
+  const g = (window as any).google
+  const a = new g.maps.LatLng(latNum, lon)
+  const b = new g.maps.LatLng(place.location.latitude, place.location.longitude)
+  const d = g.maps.geometry.spherical.computeDistanceBetween(a, b)
+  return Math.round(d)
+}
+
 /* Reset to initial state */
 function resetForNewUpload() {
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
@@ -817,7 +906,7 @@ const showTips3 = ref(false)
 const showTips30 = ref(false)
 const showTips300 = ref(false)
 
-/* ---------- Child component: GoalBar (rendered with h; no JSX) ---------- */
+/* ---------- Child component: GoalBar ---------- */
 const GoalBar = defineComponent({
   name: 'GoalBar',
   props: {
@@ -826,24 +915,16 @@ const GoalBar = defineComponent({
     mode:  { type: String as PropType<'gte' | 'lte'>, required: true }
   },
   setup(props) {
-    // Visualization:
-    // - For gte (fail case only): use trackMax = goal * 1.5 so the Goal marker sits ~66.7% along the bar.
-    //   Fill is proportional to value and always stays before the marker.
-    // - For lte (fail case only): fill 100% and place the marker earlier (goal/value).
-    const trackMax = computed(() => {
-      return props.mode === 'gte' ? props.goal * 1.5 : Math.max(props.value, props.goal)
-    })
+    // For gte (fail case): trackMax = goal * 1.5 so marker sits ~2/3 along the track
+    const trackMax = computed(() => props.mode === 'gte' ? props.goal * 1.5 : Math.max(props.value, props.goal))
     const marker = computed(() => (props.goal / trackMax.value) * 100)
     const percent = computed(() => {
       if (props.mode === 'gte') {
         const p = (props.value / trackMax.value) * 100
-        // small safety cap so the fill does not overlap the marker when value ~ goal
         return Math.min(p, Math.max(0, marker.value - 1))
       }
-      // lte fail: we want the bar to exceed the goal marker
       return 100
     })
-
     return () => h('div', { class: 'goalbar' }, [
       h('div', { class: 'goalbar-track' }, [
         h('div', { class: 'goalbar-fill', style: { width: `${percent.value}%` } }),
@@ -958,17 +1039,15 @@ const GoalBar = defineComponent({
 .mini-ov-actions{ display:flex; gap:10px; }
 .btn.ghost{ background: #fff; color:#064e3b; border:2px solid #064e3b; padding:10px 14px; border-radius:9999px; font-weight:700; font-size:14px; }
 
-/* success/fail soft backgrounds */
+/* success/fail soft backgrounds (kept as 2-state) */
 .card.mini.ok{ background:linear-gradient(180deg, #dcfce7 0%, #f0fdf4 100%); border-color:#16a34a; box-shadow:0 0 0 3px rgba(22,163,74,.18) inset; }
 .card.mini.bad{ background:linear-gradient(180deg, #fee2e2 0%, #fff1f2 100%); border-color:#dc2626; box-shadow:0 0 0 3px rgba(220,38,38,.18) inset; }
 .park-link{ text-decoration: underline; color:#065f46; }
 
-/* pass/fail decorations for value text */
 .fail-leading{ color:#f59e0b; font-weight:900; }
 .passed-label{ font-size:12px; font-weight:800; color:#15803d; margin-left:6px; align-self:flex-end; }
 
-/* ===== Progress bar with "Goal" marker =====
-   Deep selectors apply inside the child component GoalBar. */
+/* ===== Progress bar with "Goal" marker ===== */
 :deep(.goalbar){ margin-top:10px; }
 :deep(.goalbar-track){ position:relative; height:10px; background:#f3f4f6; border-radius:999px; overflow:visible; }
 :deep(.goalbar-fill){ height:100%; border-radius:999px; background: linear-gradient(90deg, #f59e0b, #fbbf24); }
@@ -981,11 +1060,16 @@ const GoalBar = defineComponent({
 .toast.success{ background:#065f46; }
 .toast.error{ background:#7f1d1d; }
 .toast.info{ background:#111827; }
-.alert.warn{ border: 1px solid #f59e0b; background: #fffbeb; color: #78350f; border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.alert.warn{ border: 1px solid #f59e0b; background: #fffbeb; color:#78350f; border-radius: 10px; padding: 10px 12px; font-size: 14px; }
 
 /* fade-in animations */
 .fade-in-left{ animation: fadeInLeft .45s ease-out both; }
 .fade-in-right{ animation: fadeInRight .45s ease-out both; }
 @keyframes fadeInLeft { from { opacity:0; transform: translateX(-14px); } to { opacity:1; transform: translateX(0); } }
 @keyframes fadeInRight{ from { opacity:0; transform: translateX(14px); } to { opacity:1; transform: translateX(0); } }
+/* status pills */
+.passed-label { font-size:12px; font-weight:800; color:#15803d; margin-left:6px; align-self:flex-end; }
+.almost-label { font-size:12px; font-weight:800; color:#f59e0b; margin-left:6px; align-self:flex-end; } /* orange */
+.failed-label { font-size:12px; font-weight:800; color:#b91c1c; margin-left:6px; align-self:flex-end; } /* red */
+
 </style>
