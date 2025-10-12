@@ -266,7 +266,15 @@ const services = [
     cta: 'Contact council',
     action: () =>
       window.open('https://services.melbourne.vic.gov.au/report/treemaintenance', '_blank'),
-    // the petition page have not created
+  },
+    {
+    // six service
+    img: new URL('@/assets/window.jpg', import.meta.url),
+    title: 'Window Gallery',
+    desc: 'Discover how others see their city through the window. Explore community-shared views, celebrate greener outlooks, and get inspired to bring more nature into your own space.',
+    cta: 'View Gallery',
+    action: () => router.push({ name: 'gallery' }),
+    
   },
 ]
 
