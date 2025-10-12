@@ -17,6 +17,7 @@
     "@aws-sdk/credential-providers": "^3.891.0",
     "@aws-sdk/s3-request-presigner": "^3.891.0",
     "@mdi/font": "^7.4.47",
+    "@supabase/supabase-js": "^2.75.0",
     "beerslider": "^1.0.3",
     "gsap": "^3.13.0",
     "leaflet": "^1.9.4",
