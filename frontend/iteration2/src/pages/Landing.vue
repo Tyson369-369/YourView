@@ -91,7 +91,8 @@
         </Swiper>
       </div>
     </section>
-
+    
+    <!-- 3-30-300 section  -->
     <section id="rule-330300" class="cover rule">
       <div class="rule-wrap">
         <h2 class="rule-title">
@@ -128,7 +129,7 @@
       </div>
     </section>
 
-    <!-- Quote: after 3-30-300 -->
+    <!-- Quote -->
     <section class="cover quote">
       <div class="quote-wrap">
         <blockquote class="quote-text">
@@ -503,10 +504,13 @@ p {
   opacity: 0.9;
 }
 
+/*moves the element along X and Y axes*/
 @keyframes bounce {
   0%, 20%, 50%, 80%, 100% {
     transform: translate(-50%, 0);
   }
+  /* moves it left by half its own width (keeps it perfectly centered) 
+     moves it down 10 pixels   */
   40% {
     transform: translate(-50%, 10px);
   }
@@ -516,7 +520,7 @@ p {
 }
 
 
-/* ===== COVER SECTIONS (scrolling content) ===== */
+/* COVER SECTIONS (scrolling content) */
 .cover {
   position: relative;
   z-index: 1;
