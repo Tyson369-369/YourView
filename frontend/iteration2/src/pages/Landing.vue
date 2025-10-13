@@ -36,22 +36,14 @@
         </div>
       </div>
 
+      <div class="scroll-down" @click="scrollToNextSection">
+        <span></span>
+      </div>
+
       <!-- grows from bottom to top to COVER the hero (GSAP controls scaleY) -->
       <div class="cover" aria-hidden="true"></div>
 
-      <!-- chevron points to services -->
-      <a href="#services" class="scroll-down" aria-label="Scroll down">
-        <svg
-          width="36"
-          height="36"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-        >
-          <path d="M19 9l-7 7-7-7" />
-        </svg>
-      </a>
+
     </section>
 
     <!-- Spacer: gives the page 1 viewport of scroll so the next section can cover the fixed hero -->
@@ -218,6 +210,15 @@ onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true })
   onScroll()
 })
+
+// scroll down indication
+const scrollToNextSection = () => {
+  window.scrollTo({
+    top: window.innerHeight,
+    behavior: "smooth",
+  });
+};
+
 
 // card carousel
 const swiperRef = ref(null)
@@ -478,6 +479,42 @@ p {
   max-width: 60ch;
   margin: 0 auto 1rem;
 }
+
+/* scroll down indication */
+.scroll-down {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+  z-index: 10;
+  animation: bounce 1.6s infinite;
+}
+
+/* .scroll-down span controls what the arrow looks like 
+(the arrow shape and its animation). */
+.scroll-down span {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-left: 3px solid #fff;
+  border-bottom: 3px solid #fff;
+  transform: rotate(-45deg);
+  opacity: 0.9;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translate(-50%, 0);
+  }
+  40% {
+    transform: translate(-50%, 10px);
+  }
+  60% {
+    transform: translate(-50%, 5px);
+  }
+}
+
 
 /* ===== COVER SECTIONS (scrolling content) ===== */
 .cover {
