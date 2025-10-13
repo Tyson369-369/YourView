@@ -108,7 +108,7 @@
             v-model.trim="address"
             :disabled="loading"
             @input="onAddressInput"
-            @focus="predOpen = true"
+            @focus="handleAddressFocus"
             @blur="onAddressBlur"
             autocomplete="off"
           />
@@ -423,7 +423,19 @@ const images = [
 ]
 const active = ref(0)
 let heroTimer: number | undefined
-onMounted(() => { heroTimer = window.setInterval(() => { active.value = (active.value + 1) % images.length }, 3000) })
+onMounted(() => { heroTimer = window.setInterval(() => { active.value = (active.value + 1) % images.length }, 3000); ensureAutocomplete().catch(() => {})})
+async function handleAddressFocus() {
+  predOpen.value = true
+  if (!mapsReady.value) {
+    try {
+      await ensureAutocomplete()
+
+      if ((lastQuery.value || '').trim().length > 0) {
+        fetchPredictions(lastQuery.value.trim())
+      }
+    } catch {}
+  }
+}
 onUnmounted(() => {
   if (heroTimer) window.clearInterval(heroTimer)
   if (predTimer) window.clearTimeout(predTimer)
@@ -586,18 +598,23 @@ function loadGoogleMaps() {
     document.head.appendChild(s)
   })
 }
+const mapsReady = ref(false)
+const lastQuery = ref('')
+
 async function ensureAutocomplete() {
   await loadGoogleMaps()
   const g = (window as any).google
   if (!autoService) autoService = new g.maps.places.AutocompleteService()
   if (!detailsService) detailsService = new g.maps.places.PlacesService(document.createElement('div'))
   if (!sessionToken) sessionToken = new g.maps.places.AutocompleteSessionToken()
+  mapsReady.value = true
 }
 let predTimer: number | null = null
 function onAddressInput() {
   error.value = null
   if (predTimer) window.clearTimeout(predTimer)
   const q = address.value
+  lastQuery.value = q
   if (!q) { predictions.value = []; return }
   predTimer = window.setTimeout(() => fetchPredictions(q), 220)
 }
