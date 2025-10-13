@@ -206,35 +206,42 @@
       </div>
     </div>
     <div id="uhi-leaflet-map" class="uhi-leaflet-map"></div>
-    <!-- 🌡️ Suburb Insights Cards (Expandable) -->
+    <!-- 🌡️ Suburb Insights Cards (Flippable) -->
     <div
       class="suburb-insights-container"
       v-if="selectedSuburb && suburbMetrics.length > 0"
     >
       <div
-        class="insight-card"
-        v-for="metric in suburbMetrics"
+        class="flippable-card"
+        v-for="(metric, idx) in suburbMetrics"
         :key="metric.label"
-        :class="{ expanded: expandedMetric === metric.label }"
-        @click="toggleExpand(metric.label)"
+        :class="{ flipped: flippedInsightCards[idx] }"
+        @click="toggleInsightCard(idx)"
+        @touchstart="toggleInsightCard(idx)"
+        tabindex="0"
+        @keydown.enter="toggleInsightCard(idx)"
+        @keydown.space="toggleInsightCard(idx)"
       >
-        <div class="insight-title">{{ metric.label }}</div>
-        <div class="insight-value" :class="{ hot: metric.isHot }">{{ metric.value }}</div>
-        <div class="insight-bar" v-if="metric.bar">
-          <div
-            class="insight-bar-fill"
-            :style="{ width: metric.bar + '%', backgroundColor: metric.color }"
-          ></div>
-        </div>
-        <transition name="fade">
-          <div v-if="expandedMetric === metric.label" class="insight-description">
-            <ul>
-              <li v-for="line in getMetricExplanation(metric, selectedSuburb, selectedMonth)" :key="line" v-html="line"></li>
-            </ul>
+        <div class="card-inner">
+          <div class="card-front">
+            <div class="insight-title">{{ metric.label }}</div>
+            <div class="insight-value" :class="{ hot: metric.isHot }">{{ metric.value }}</div>
+            <div class="insight-bar" v-if="metric.bar">
+              <div
+                class="insight-bar-fill"
+                :style="{ width: metric.bar + '%', backgroundColor: metric.color }"
+              ></div>
+            </div>
           </div>
-        </transition>
+          <div class="card-back">
+            <div class="insight-back-summary">
+              <span class="back-bullet">{{ getMetricSummary(metric.label) }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+    <!-- Flippable suburb insights cards state & logic moved to script -->
   </div>
       </div>
     </section>
@@ -246,7 +253,7 @@
 import 'leaflet/dist/leaflet.css'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { onMounted, ref, nextTick, watch } from 'vue'
+import { onMounted, ref, nextTick, watch, computed } from 'vue'
 import L from 'leaflet'
 // --- Supabase Client Setup (Single Instance, Correct URL) ---
 import { createClient } from '@supabase/supabase-js'
@@ -257,6 +264,30 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 console.log('✅ Supabase client initialized:', SUPABASE_URL)
+
+// Flippable suburb insights cards state & logic (moved from template)
+const flippedInsightCards = ref([])
+
+function toggleInsightCard(idx) {
+  flippedInsightCards.value[idx] = !flippedInsightCards.value[idx]
+}
+
+function getMetricSummary(label) {
+  switch (label) {
+    case "Thermal Gap":
+      return "🌡️ Shows how much heat your suburb holds. Big gaps mean surfaces stay hot during the day and cool slowly at night";
+    case "Hot Day Ratio":
+      return "🔥 Share of days hotter than 34.3 °C. A value of 0.10 means roughly 1 in 10 days are extreme-heat days.";
+    case "Day–Night Ratio":
+      return "🌞🌙 Shows how much hotter days are than nights. A ratio of 2.4× means days heat up much faster than nights cool down.";
+    case "Hot Days":
+      return "☀️ Number of extra hot days this month.";
+    case "P90 Day":
+      return "🏆 90th percentile daytime temp—shows extreme heat.";
+    default:
+      return "ℹ️ Suburb heat insight.";
+  }
+}
 
 
 function getColor(value) {
@@ -302,7 +333,8 @@ async function updateMapForMonth() {
       return;
     }
 
-    // 🌡️ Compute dynamic thresholds relative to actual data
+    // 🌡️ Compute dynamic thresholds relative to actual data 
+    
     let tLow, tHigh;
     const temps = data.map(d =>
       showDay.value
@@ -715,6 +747,12 @@ onMounted(() => {
     mapContainerEl.addEventListener('mouseleave', () => {
       mapContainerEl.classList.remove('glow-active');
     });
+  }
+});
+// Keep filteredSuburbs in sync with suburbs
+watch(suburbs, (newVal) => {
+  if (newVal && newVal.length > 0) {
+    filteredSuburbs.value = [...newVal];
   }
 });
 </script>
@@ -1486,85 +1524,111 @@ onMounted(() => {
   background: #f9fbfa;
   box-shadow: 0 4px 15px rgba(0, 121, 107, 0.1);
 }
-</style>
-<style scoped>
-.insight-card {
+/* Flippable Card Styles */
+.flippable-card {
   flex: 1 1 200px;
   max-width: 220px;
+  min-width: 160px;
+  min-height: 160px;
+  aspect-ratio: 1 / 1;
   cursor: pointer;
-  transition: all 0.4s ease;
+  perspective: 900px;
+  transition: box-shadow 0.3s, transform 0.3s;
   position: relative;
+  background: transparent;
+  outline: none;
 }
-
-.insight-card.expanded {
-  flex: 1 1 100%;
-  max-width: 100%;
-  padding: 1.8rem;
-  text-align: left;
-  background: #ffffff;
-  z-index: 5;
-  box-shadow: 0 6px 20px rgba(0, 121, 107, 0.15);
+.flippable-card:focus {
+  box-shadow: 0 0 0 3px #b2dfdb;
 }
-
+.card-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: transform 0.7s cubic-bezier(.4,0,.2,1);
+  transform-style: preserve-3d;
+}
+.flippable-card.flipped .card-inner,
+.flippable-card:hover .card-inner {
+  transform: rotateY(180deg);
+}
+.card-front, .card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+  transition: box-shadow 0.3s;
+}
+.card-front {
+  z-index: 2;
+}
+.card-back {
+  transform: rotateY(180deg);
+  z-index: 3;
+}
 .insight-title {
   font-weight: 700;
   color: #004d40;
   font-size: 1rem;
   margin-bottom: 0.4rem;
+  text-align: center;
 }
-
 .insight-value {
   font-size: 1.4rem;
   font-weight: 900;
   color: #00796b;
   margin-bottom: 0.4rem;
+  text-align: center;
 }
-
 .insight-value.hot {
   color: #d32f2f;
 }
-
 .insight-bar {
   height: 8px;
   border-radius: 4px;
   background: #e0f2f1;
   overflow: hidden;
+  width: 100%;
+  margin-bottom: 0.2rem;
 }
-
 .insight-bar-fill {
   height: 100%;
   border-radius: 4px;
   transition: width 0.6s ease;
 }
-
-.insight-description {
-  margin-top: 1rem;
-  background: #f9fbfa;
-  border-radius: 10px;
-  padding: 1rem 1.2rem;
-  font-size: 1rem;
+.insight-back-summary {
+  width: 100%;
+  text-align: center;
+  font-size: 1.01rem;
+  font-weight: 600;
   color: #004d40;
-  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
 }
-
-.insight-description ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.back-bullet {
+  display: inline-block;
+  white-space: pre-line;
 }
-
-.insight-description li {
-  margin-bottom: 0.6rem;
-}
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.4s;
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
+@media (max-width: 768px) {
+  .flippable-card {
+    max-width: 100%;
+    min-width: 120px;
+    min-height: 120px;
+    aspect-ratio: 1 / 1;
+  }
 }
 </style>
+
 <style scoped>
 :deep(.suburb-trace-border) {
   stroke: #00ffc3;
@@ -1906,9 +1970,3 @@ nav {
   color: #004d40;
 }
 </style>
-// Keep filteredSuburbs in sync with suburbs
-watch(suburbs, (newVal) => {
-  if (newVal && newVal.length > 0) {
-    filteredSuburbs.value = [...newVal];
-  }
-});
