@@ -278,18 +278,37 @@ function toggleFlip(metricName) {
     flippedCards.value.push(metricName);
   }
 }
-function getInterpretation(name, value) {
-  switch (name) {
+function getInterpretation(metric, value) {
+  const v = parseFloat(value || 0);
+
+  switch (metric) {
     case "Thermal Gap":
-      return "🌡️ Shows how strongly the suburb's surface holds and gives off heat. A high gap means more heat stays overnight.";
+      if (v <= 1) return "🌡️ Surfaces here cool quickly, little heat lingers overnight.";
+      if (v <= 5) return "🌡️ Mild thermal gap, some heat stays overnight.";
+      return "🌡️ Strong heat retention, surfaces stay hot well into the night.";
+
     case "Hot Day Ratio":
-      return "🔥 About 1 in 10 days are very hot here. A sign of frequent heat events.";
+      if (v === 0) return "🔥 No very hot days observed this month.";
+      if (v < 0.05) return "🔥 Only a few very hot days, heat events are rare.";
+      if (v < 0.15) return "🔥 About 1 in 10 days are very hot, frequent heat events.";
+      return "🔥 Very frequent hot days, strong sign of heat stress.";
+
     case "Day–Night Ratio":
-      return "🌞🌙 Days heat up about 2.4× more than nights cool down, poor cooling after sunset.";
+      if (v < 1.2) return "🌞🌙 Day and night temps are nearly the same, good cooling.";
+      if (v < 2) return "🌞🌙 Days warm faster than nights cool, moderate night heat.";
+      return "🌞🌙 Days heat up much more than nights cool, poor nighttime cooling.";
+
     case "Hot Days":
-      return "☀️ Total number of very hot days this month. Higher means more heat stress days.";
+      if (v === 0) return "☀️ No hot days this month, comfortable conditions.";
+      if (v < 3) return "☀️ Only a few hot days, moderate heat.";
+      if (v < 10) return "☀️ Several hot days, some heat stress possible.";
+      return "☀️ Many hot days this month, strong heat stress.";
+
     case "P90 Day":
-      return "🏆 Shows how extreme the hottest daytime temps get (top 10% of days).";
+      if (v < 20) return "🏆 Hottest daytime temps stay mild, low heat risk.";
+      if (v < 30) return "🏆 Occasional extreme heat, watch for warmer days.";
+      return "🏆 Frequent extreme daytime heat, strong urban heat signal.";
+
     default:
       return "ℹ️ Heat insight for this suburb.";
   }
