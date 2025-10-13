@@ -148,7 +148,7 @@
           id="suburbSearch"
           type="text"
           v-model="suburbQuery"
-          placeholder="Start typing suburb name..."
+          placeholder="Start typing..."
           @input="filterSuburbs"
           @focus="filterSuburbs"
         />
@@ -206,6 +206,35 @@
       </div>
     </div>
     <div id="uhi-leaflet-map" class="uhi-leaflet-map"></div>
+    <!-- 🌡️ Suburb Insights Cards (Expandable) -->
+    <div
+      class="suburb-insights-container"
+      v-if="selectedSuburb && suburbMetrics.length > 0"
+    >
+      <div
+        class="insight-card"
+        v-for="metric in suburbMetrics"
+        :key="metric.label"
+        :class="{ expanded: expandedMetric === metric.label }"
+        @click="toggleExpand(metric.label)"
+      >
+        <div class="insight-title">{{ metric.label }}</div>
+        <div class="insight-value" :class="{ hot: metric.isHot }">{{ metric.value }}</div>
+        <div class="insight-bar" v-if="metric.bar">
+          <div
+            class="insight-bar-fill"
+            :style="{ width: metric.bar + '%', backgroundColor: metric.color }"
+          ></div>
+        </div>
+        <transition name="fade">
+          <div v-if="expandedMetric === metric.label" class="insight-description">
+            <ul>
+              <li v-for="line in getMetricExplanation(metric, selectedSuburb, selectedMonth)" :key="line" v-html="line"></li>
+            </ul>
+          </div>
+        </transition>
+      </div>
+    </div>
   </div>
       </div>
     </section>
@@ -346,6 +375,13 @@ async function updateMapForMonth() {
           🌙 Night: ${p.nightTemp?.toFixed(2) ?? 'N/A'}°C
         `;
         layer.bindPopup(popupContent);
+        // Add click event to trigger suburb selection
+        layer.on('click', () => {
+          selectedSuburb.value = p.suburb;
+          suburbQuery.value = p.suburb;
+          showSuggestions.value = false;
+          zoomToSuburb();
+        });
       }
     }).addTo(map);
   } catch (e) {
@@ -471,6 +507,13 @@ watch(showDay, async () => {
   await updateMapForMonth();
 })
 
+// Refresh suburb metrics when selectedMonth or showDay changes
+watch([selectedMonth, showDay], async () => {
+  if (selectedSuburb.value) {
+    await zoomToSuburb();
+  }
+});
+
 const suburbSelected = ref(false)
 const suburbName = ref('')
 const insights = ref({
@@ -531,6 +574,8 @@ const filteredSuburbs = ref([])
 const showSuggestions = ref(false)
 const suburbs = ref([])
 const selectedSuburb = ref('')
+
+const suburbMetrics = ref([]);
 
 onMounted(() => {
   document.addEventListener('click', (e) => {
@@ -614,6 +659,23 @@ async function zoomToSuburb() {
     console.error('❌ Error zooming to suburb:', error || 'No geometry found');
     return;
   }
+  // --- Fetch metrics for selected suburb and month ---
+  const { data: metricsData, error: metricsError } = await supabase
+    .from('uhi_monthly_final')
+    .select('thermal_gap, hot_day_ratio, day_night_ratio, hot_day_count, p90_day')
+    .ilike('suburb', `%${selectedSuburb.value.trim()}%`)
+    .eq('month', months.indexOf(selectedMonth.value) + 1)
+    .limit(1);
+  if (!metricsError && metricsData && metricsData.length > 0) {
+    const m = metricsData[0];
+    suburbMetrics.value = [
+      { label: "Thermal Gap", value: `${m.thermal_gap?.toFixed(1)}°C`, bar: (m.thermal_gap ?? 0) * 10, color: "#fc8d59" },
+      { label: "Hot Day Ratio", value: `${(m.hot_day_ratio ?? 0).toFixed(2)}×`, bar: (m.hot_day_ratio ?? 0) * 100, color: "#e76f51" },
+      { label: "Day–Night Ratio", value: `${(m.day_night_ratio ?? 0).toFixed(2)}×`, bar: (m.day_night_ratio ?? 0) * 50, color: "#379a3e" },
+      { label: "Hot Days", value: `${m.hot_day_count ?? 0} days`, bar: (m.hot_day_count ?? 0) * 3, color: "#d32f2f" },
+      { label: "P90 Day", value: `${m.p90_day?.toFixed(1)}°C`, bar: (m.p90_day ?? 0) * 10, color: "#f4a261" },
+    ];
+  }
   const geoField = data[0].geom_json;
   const geo = typeof geoField === 'string' ? JSON.parse(geoField) : geoField;
   const layer = L.geoJSON(geo);
@@ -635,6 +697,26 @@ async function zoomToSuburb() {
   }, 4000);
 }
 
+
+onMounted(() => {
+  const mapContainerEl = document.querySelector('.uhi-leaflet-map-container');
+  if (mapContainerEl) {
+    mapContainerEl.addEventListener('mousemove', (e) => {
+      if (!e.target.closest('.leaflet-container')) {
+        const rect = mapContainerEl.getBoundingClientRect();
+        mapContainerEl.style.setProperty('--glow-x', `${e.clientX - rect.left}px`);
+        mapContainerEl.style.setProperty('--glow-y', `${e.clientY - rect.top}px`);
+        mapContainerEl.classList.add('glow-active');
+      } else {
+        mapContainerEl.classList.remove('glow-active');
+      }
+    });
+
+    mapContainerEl.addEventListener('mouseleave', () => {
+      mapContainerEl.classList.remove('glow-active');
+    });
+  }
+});
 </script>
 
 <style scoped>
@@ -1392,6 +1474,98 @@ async function zoomToSuburb() {
 
 </style>
 <style scoped>
+.suburb-insights-container {
+  display: flex;
+  justify-content: space-evenly;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: #f9fbfa;
+  box-shadow: 0 4px 15px rgba(0, 121, 107, 0.1);
+}
+</style>
+<style scoped>
+.insight-card {
+  flex: 1 1 200px;
+  max-width: 220px;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.insight-card.expanded {
+  flex: 1 1 100%;
+  max-width: 100%;
+  padding: 1.8rem;
+  text-align: left;
+  background: #ffffff;
+  z-index: 5;
+  box-shadow: 0 6px 20px rgba(0, 121, 107, 0.15);
+}
+
+.insight-title {
+  font-weight: 700;
+  color: #004d40;
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.insight-value {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #00796b;
+  margin-bottom: 0.4rem;
+}
+
+.insight-value.hot {
+  color: #d32f2f;
+}
+
+.insight-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #e0f2f1;
+  overflow: hidden;
+}
+
+.insight-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.insight-description {
+  margin-top: 1rem;
+  background: #f9fbfa;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  font-size: 1rem;
+  color: #004d40;
+  line-height: 1.6;
+}
+
+.insight-description ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.insight-description li {
+  margin-bottom: 0.6rem;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.4s;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+</style>
+<style scoped>
 :deep(.suburb-trace-border) {
   stroke: #00ffc3;
   stroke-width: 4;
@@ -1499,10 +1673,37 @@ async function zoomToSuburb() {
 }
 </style>
 <style>
-:deep(.leaflet-container) {
-  height: 500px;
-  width: 100%;
-  border-radius: 12px;
+/* Fix leaflet and dropdown stacking below header */
+:deep(.leaflet-container),
+:deep(.leaflet-control),
+:deep(.leaflet-top.leaflet-left),
+:deep(.leaflet-bottom.leaflet-right),
+:deep(.leaflet-control-zoom),
+:deep(.leaflet-bar),
+.suburb-suggestions {
+  z-index: 1 !important; /* Below header */
+  position: relative !important;
+}
+
+/* Ensure navbar always stays on top */
+header,
+.Header,
+nav {
+  position: relative;
+  z-index: 10000 !important;
+}
+
+/* Push leaflet controls below header visually */
+:deep(.leaflet-top.leaflet-left) {
+  margin-top: 90px !important;
+}
+
+/* Make sure dropdown stays below header but above map */
+.suburb-suggestions {
+  z-index: 9999 !important;
+  position: absolute !important;
+  top: 100%;
+  left: 0;
 }
 </style>
 <style scoped>
@@ -1517,6 +1718,27 @@ async function zoomToSuburb() {
   padding: 2rem 2.2rem;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 121, 107, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.uhi-leaflet-map-container::before {
+  content: '';
+  position: absolute;
+  top: var(--glow-y, 50%);
+  left: var(--glow-x, 50%);
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(0, 255, 204, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.uhi-leaflet-map-container.glow-active::before {
+  opacity: 1;
 }
 
 .uhi-leaflet-map-container.night-mode {
@@ -1527,8 +1749,36 @@ async function zoomToSuburb() {
 
 .uhi-leaflet-map-container.night-mode h3,
 .uhi-leaflet-map-container.night-mode .uhi-legend h4,
+
 .uhi-leaflet-map-container.night-mode .uhi-suburb-select label {
   color: #e0f2f1;
+}
+
+.uhi-leaflet-map-container.night-mode input#suburbSearch {
+  color: #ffffff;
+  background-color: #333333;
+  border: 1px solid #80cbc4;
+}
+
+
+.uhi-leaflet-map-container.night-mode input#suburbSearch::placeholder {
+  color: #bbbbbb;
+  opacity: 0.8;
+}
+
+.uhi-leaflet-map-container.night-mode .suburb-suggestions {
+  background-color: #2c2c2c;
+  border: 1px solid #80cbc4;
+}
+
+.uhi-leaflet-map-container.night-mode .suburb-suggestions li {
+  color: #ffffff;
+  background-color: #2c2c2c;
+}
+
+.uhi-leaflet-map-container.night-mode .suburb-suggestions li:hover {
+  background-color: #00796b;
+  color: #ffffff;
 }
 
 .uhi-leaflet-map-container.night-mode .month-chip,
