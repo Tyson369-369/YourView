@@ -767,8 +767,9 @@ async function handleSeeMyScore() {
     const count = (analyze as any)?.trees_counted ?? (analyze as any)?.tree_count ?? (analyze as any)?.analysis_details?.tree_count
     treesCount.value = (typeof count === 'number') ? count : null
 
-    // delete image when trees <=3 (still show results)
-    if (typeof treesCount.value === 'number' && treesCount.value <= 3 && !didDelete) {
+    // delete image when trees <=3 or non defined (still show results)
+    const tc = treesCount.value
+    if (!didDelete && (typeof tc !== 'number' || tc <= 3)) {
       await safeDelete(uploadedBucket, uploadedKey)
       didDelete = true
     }
