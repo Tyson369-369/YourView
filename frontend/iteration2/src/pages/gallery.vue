@@ -13,12 +13,12 @@
       :disable-rotation="false"
     />
 
-    <!-- Page surface -->
+    <!-- Foreground surface -->
     <div class="page-surface">
       <Header />
 
       <main>
-        <!-- Title hero -->
+        <!-- Hero title -->
         <section class="hero">
           <h1 class="hero-title">
             Window Gallery<br class="mobile-break" />
@@ -26,7 +26,7 @@
           <p class="hero-subtitle">Discover Melbournian Greenery View</p>
         </section>
 
-        <!-- Display area -->
+        <!-- Gallery stage -->
         <section class="stage">
           <div class="circular-gallery" ref="containerRef"></div>
         </section>
@@ -39,7 +39,15 @@
             :disabled="loading || !canShowMore"
             aria-label="Explore more"
           >
-            {{ canShowMore ? (loading ? 'Loading…' : 'Explore More') : 'Nothing else' }}
+            {{ canShowMore ? (loading ? 'Loading...' : 'Explore More') : 'No more photos' }}
+          </button>
+
+          <button
+            class="cg-explore-btn"
+            @click="goUpload"
+            aria-label="Go to Upload Window"
+          >
+            Share my window view
           </button>
 
           <p v-if="error" class="cg-error">{{ error }}</p>
@@ -50,9 +58,21 @@
       <Footer />
     </div>
 
-    <!-- Lightbox -->
+    <!-- Lightbox with download -->
     <div v-if="lightboxOpen" class="lb" @click.self="closeLightbox">
       <button class="lb-close" @click="closeLightbox" aria-label="Close">×</button>
+
+      <!-- Download button -->
+      <a
+        class="lb-dl"
+        v-if="items.length"
+        :href="items[activeIdx]?.downloadUrl || items[activeIdx]?.image"
+        :download="items[activeIdx]?.text || 'photo.jpg'"
+        @click.stop
+        aria-label="Download"
+        title="Download"
+      >⬇</a>
+
       <button class="lb-nav prev" v-if="items.length>1" @click="prev">‹</button>
       <img class="lb-img" :src="items[activeIdx]?.image" :alt="items[activeIdx]?.text || 'Window view'">
       <button class="lb-nav next" v-if="items.length>1" @click="next">›</button>
@@ -63,6 +83,7 @@
 <script setup>
 /* Imports & setup */
 import { defineComponent, h, onMounted, onBeforeUnmount, ref, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { Camera, Mesh, Plane, Program, Renderer, Texture, Transform, Geometry } from 'ogl'
@@ -86,6 +107,12 @@ const PROP_FONT = 'bold 30px Figtree'
 const PROP_SCROLL_SPEED = 2
 const PROP_SCROLL_EASE = 0.05
 
+/* Router */
+const router = useRouter()
+function goUpload() {
+  router.push('/upload_window')
+}
+
 /* AWS client */
 const s3 = new S3Client({
   region: REGION,
@@ -101,7 +128,7 @@ const cursor = ref(undefined)
 const queue = ref([])
 const seen = ref(new Set())
 
-/* Lightbox */
+/* Lightbox state */
 const lightboxOpen = ref(false)
 const activeIdx = ref(0)
 function openLightbox(i) { activeIdx.value = i; lightboxOpen.value = true; document.documentElement.style.overflow = 'hidden' }
@@ -109,7 +136,7 @@ function closeLightbox() { lightboxOpen.value = false; document.documentElement.
 function prev() { activeIdx.value = (activeIdx.value - 1 + items.value.length) % items.value.length }
 function next() { activeIdx.value = (activeIdx.value + 1) % items.value.length }
 
-/* Utils */
+/* Small helpers */
 function debounce(func, wait) { let t; return function (...a) { clearTimeout(t); t = setTimeout(() => func.apply(this, a), wait) } }
 function lerp(p1, p2, t) { return p1 + (p2 - p1) * t }
 function autoBind(instance) {
@@ -138,7 +165,7 @@ function createTextTexture(gl, text, font = 'bold 30px monospace', color = 'blac
   return { texture, width: canvas.width, height: canvas.height }
 }
 
-/* Title class */
+/* Title mesh */
 class Title {
   constructor({ gl, plane, text, textColor = '#545050', font = '30px sans-serif' }) {
     autoBind(this)
@@ -172,7 +199,7 @@ class Title {
   }
 }
 
-/* Media class */
+/* Media item */
 class Media {
   constructor({ geometry, gl, image, index, length, scene, screen, text, viewport, bend, textColor, borderRadius = 0, font }) {
     this.extra = 0
@@ -299,7 +326,7 @@ class Media {
   }
 }
 
-/* App class */
+/* Gallery app */
 class App {
   constructor(container, { items, bend, textColor = '#ffffff', borderRadius = 0.05, font = 'bold 30px Figtree', scrollSpeed = 2, scrollEase = 0.05, onTap } = {}) {
     autoBind(this)
@@ -432,7 +459,7 @@ class App {
   }
 }
 
-/* Particles background (same as之前版本) */
+/* Particles background */
 const ParticlesBg = defineComponent({
   name: 'ParticlesBg',
   props: {
@@ -451,7 +478,7 @@ const ParticlesBg = defineComponent({
   setup(props) {
     const containerRef = ref(null)
     const mouse = { x: 0, y: 0 }
-    let renderer, gl, camera, program, particles, animationFrameId
+    let renderer, gl, camera, program, particles
 
     const hexToRgb = (hex) => {
       hex = hex.replace(/^#/, '')
@@ -493,18 +520,17 @@ const ParticlesBg = defineComponent({
     `
 
     function onResize() {
+      if (!renderer) return
       const el = containerRef.value
-      if (!el || !renderer) return
       const w = el.clientWidth, h = el.clientHeight
       renderer.setSize(w, h)
-      camera.perspective({ aspect: gl.canvas.width / gl.canvas.height })
+      camera.perspective({ aspect: renderer.gl.canvas.width / renderer.gl.canvas.height })
     }
     function onMouseMove(e) {
       const el = containerRef.value; if (!el) return
       const rect = el.getBoundingClientRect()
-      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1
-      const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1)
-      mouse.x = x; mouse.y = y
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      mouse.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1)
     }
 
     onMounted(() => {
@@ -569,8 +595,25 @@ async function listOnePage() {
 }
 async function signBatch(keys) {
   return Promise.all(keys.map(async k => {
-    const url = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: k }), { expiresIn: 1800 })
-    return { image: url, text: k.split('/').pop() || '' }
+    const fileName = k.split('/').pop() || 'photo.jpg'
+
+    const viewUrl = await getSignedUrl(
+      s3,
+      new GetObjectCommand({ Bucket: BUCKET, Key: k }),
+      { expiresIn: 1800 }
+    )
+
+    const downloadUrl = await getSignedUrl(
+      s3,
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key: k,
+        ResponseContentDisposition: `attachment; filename="${encodeURIComponent(fileName)}"`
+      }),
+      { expiresIn: 1800 }
+    )
+
+    return { image: viewUrl, downloadUrl, text: fileName }
   }))
 }
 async function fillBatch() {
@@ -593,7 +636,7 @@ async function showMore() {
   finally { loading.value = false }
 }
 
-/* App lifecycle glue */
+/* App mounting */
 const containerRef = ref(null)
 let app = null
 function rebuildApp() {
@@ -613,7 +656,7 @@ function rebuildApp() {
 }
 async function onExplore() { await showMore(); await nextTick(); rebuildApp() }
 
-/* Mount */
+/* Lifecycle */
 onMounted(async () => {
   loading.value = true
   try {
@@ -630,7 +673,7 @@ onBeforeUnmount(() => { if (app) { try { app.destroy() } catch {} app = null } }
 </script>
 
 <style scoped>
-/* Page shell (dark base improves contrast for white hero title) */
+/* Page background */
 .page-wrapper{
   min-height:100vh;
   background:
@@ -638,47 +681,30 @@ onBeforeUnmount(() => { if (app) { try { app.destroy() } catch {} app = null } }
     #0b1020;
 }
 
-/* Full-page animated background */
+/* Particles canvas */
 .particles-container.bg-global{
-  position:fixed;
-  inset:0;
-  z-index:0;
-  pointer-events:none;
+  position:fixed; inset:0; z-index:0; pointer-events:none;
 }
 
-/* Foreground surface */
+/* Foreground */
 .page-surface{
-  position:relative;
-  z-index:1;
-  display:flex;
-  flex-direction:column;
-  min-height:100vh;
+  position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh;
 }
 
 main { flex:1; padding:24px; }
 
-/* Title hero (borrowed look from your landing page) */
+/* Hero styles */
 .hero{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  text-align:center;
-  margin: 4vh auto 8px;
+  display:flex; flex-direction:column; align-items:center; text-align:center; margin: 4vh auto 8px;
 }
 .hero-title{
-  color:#ffffff;
-  font-weight:900;
-  line-height:1.1;
-  letter-spacing:.01em;
+  color:#ffffff; font-weight:900; line-height:1.1; letter-spacing:.01em;
   text-shadow:0 6px 18px rgba(0,0,0,.95);
   font-size: clamp(2.4rem, 4.8vw + 1rem, 4.25rem);
   margin: 0 0 .35rem;
 }
 .hero-subtitle{
-  color:#eafaf7;
-  opacity:.95;
-  font-weight:600;
-  line-height:1.55;
+  color:#eafaf7; opacity:.95; font-weight:600; line-height:1.55;
   text-shadow:0 6px 18px rgba(0,0,0,1);
   font-size: clamp(1rem, 1.2vw + .6rem, 1.35rem);
   margin: 0 0 10px;
@@ -689,7 +715,7 @@ main { flex:1; padding:24px; }
   .hero-title{ white-space:normal; font-size: clamp(1.9rem, 6vw + .6rem, 2.8rem); }
 }
 
-/* Display area */
+/* Gallery stage */
 .stage {
   position: relative;
   width: min(1100px, 94vw);
@@ -699,40 +725,29 @@ main { flex:1; padding:24px; }
   place-items: center;
 }
 .circular-gallery {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  cursor: grab;
-  position: relative;
-  z-index:1;
-  border-radius: 18px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  width: 100%; height: 100%; overflow: hidden; cursor: grab; position: relative; z-index:1;
+  border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.35);
 }
 .circular-gallery:active { cursor: grabbing; }
 
-/* Actions below the gallery */
+/* Action buttons */
 .stage-actions{
   width: min(1100px, 94vw);
   margin: 14px auto 26px;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
   align-items: center;
-  gap: 10px;
 }
 .cg-explore-btn{
-  padding:12px 18px;
-  border-radius:9999px;
-  font-weight:800;
-  cursor:pointer;
-  border:2px solid #9EE6D8;
-  background:#0e5b4b;
-  color:#E8FFFA;
+  padding:12px 18px; border-radius:9999px; font-weight:800; cursor:pointer;
+  border:2px solid #9EE6D8; background:#0e5b4b; color:#E8FFFA;
   box-shadow:0 12px 28px rgba(0,0,0,.28);
 }
 .cg-explore-btn:disabled{ opacity:.55; cursor:not-allowed; }
 .cg-error{
-  background:#fee2e2; color:#991b1b;
-  padding:6px 10px; border-radius:8px;
+  background:#fee2e2; color:#991b1b; padding:6px 10px; border-radius:8px;
   font-size:12px; box-shadow:0 2px 8px rgba(0,0,0,.08);
 }
 .muted { color:#9fb2b7; text-align:center; }
@@ -741,6 +756,13 @@ main { flex:1; padding:24px; }
 .lb { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: grid; place-items: center; z-index: 60; }
 .lb-img { max-width: 92vw; max-height: 82vh; border-radius: 12px; box-shadow: 0 12px 36px rgba(0,0,0,.4); }
 .lb-close { position:absolute; top:14px; right:14px; font-size:22px; line-height:1; border:none; background:#fff; color:#111; border-radius:9999px; width:36px; height:36px; cursor:pointer; }
+.lb-dl{
+  position:absolute; top:14px; right:60px;
+  width:36px; height:36px; display:grid; place-items:center;
+  border:none; border-radius:9999px; background:#fff; color:#111; text-decoration:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.2); cursor:pointer; font-size:18px;
+}
+.lb-dl:hover{ background:#f3f4f6; }
 .lb-nav { position:absolute; top:50%; transform: translateY(-50%); width:44px; height:44px; border:none; border-radius:9999px; background:#fff; color:#111; font-size:24px; cursor:pointer; }
 .lb-nav.prev { left:14px; }
 .lb-nav.next { right:14px; }
