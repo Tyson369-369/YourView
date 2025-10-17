@@ -78,7 +78,7 @@
           </span>
           <span v-else class="btn-loading">
             <span class="spinner" aria-hidden="true"></span>
-            Analyzing…
+            Analyzing...
           </span>
         </button>
 
@@ -115,7 +115,7 @@
               </span>
               Care recommendations
             </span>
-            <span class="chev">{{ openCare ? '−' : '+' }}</span>
+            <span class="chev">{{ openCare ? '-' : '+' }}</span>
           </button>
           <div v-show="openCare" class="acc-body">
             <ul class="green-bullets">
@@ -129,7 +129,7 @@
         <div class="accordion">
           <button class="acc-header" @click="openMore = !openMore">
             <span>More details</span>
-            <span class="chev">{{ openMore ? '−' : '+' }}</span>
+            <span class="chev">{{ openMore ? '-' : '+' }}</span>
           </button>
           <div v-show="openMore" class="acc-body">
             <div v-if="otherCare.length">
@@ -145,7 +145,7 @@
               <h4 class="subhead">Issues identified</h4>
               <ul class="disc">
                 <li v-for="(it, idx) in result.issues_identified" :key="idx">
-                  <strong>{{ it.type }}</strong> — {{ it.severity }}. {{ it.description }}
+                  <strong>{{ it.type }}</strong> - {{ it.severity }}. {{ it.description }}
                   <span v-if="it.treatment"><em> Treatment:</em> {{ it.treatment }}</span>
                 </li>
               </ul>
@@ -198,7 +198,7 @@
                 :disabled="copyingIndex === i"
                 @click.stop="copyImage(i, p.photo_url)"
               >
-                <span v-if="copyingIndex === i">Copying…</span>
+                <span v-if="copyingIndex === i">Copying...</span>
                 <span v-else-if="copiedIndex === i">Copied ✓</span>
                 <span v-else>Copy Image</span>
               </button>
@@ -240,7 +240,7 @@ const MODERATE_URL = `${API_BASE}/moderate-object`
 const DELETE_URL = `${API_BASE}/delete-object`
 const PLANT_ANALYZER_URL = 'https://efmnjv0lr3.execute-api.ap-southeast-2.amazonaws.com/plant-health-checker'
 
-const LOW_CONFIDENCE_THRESHOLD = 10 // ≤10% => considered not analyzable
+const LOW_CONFIDENCE_THRESHOLD = 10 // <10% => considered not analyzable
 const S3_FOLDER = 'PlantHealth'     // S3 folder
 
 // ==============================
@@ -256,7 +256,7 @@ const lowConfidence = ref(false)
 
 const warnTitle = ref('Unable to analyze. Please upload photos of the plants.')
 const warnSubtitle = ref(
-  'We cannot confidently identify this image as a plant (Identification confidence ≤ 10%). Please try to change to a clearer close-up of the plant.'
+  'We cannot confidently identify this image as a plant (Identification confidence < 10%). Please try to change to a clearer close-up of the plant.'
 )
 
 // Accordions
@@ -325,7 +325,7 @@ async function parseMaybeLambdaProxyResponse(res) {
 }
 
 // ==============================
-// Upload → Moderate → Analyze flow
+// Upload -> Moderate -> Analyze flow
 // ==============================
 async function handleSubmit() {
   error.value = null
@@ -417,7 +417,7 @@ async function handleSubmit() {
     if (!Number.isNaN(conf) && conf <= LOW_CONFIDENCE_THRESHOLD) {
       warnTitle.value = 'Unable to analyze. Please upload photos of the plants.'
       warnSubtitle.value =
-        'We cannot confidently identify this image as a plant (Identification confidence ≤ 10%). Please try a clearer close-up of the plant.'
+        'We cannot confidently identify this image as a plant (Identification confidence < 10%). Please try a clearer close-up of the plant.'
       lowConfidence.value = true
       try {
         await fetch(DELETE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bucket, key }) })
@@ -532,7 +532,7 @@ async function blobToPngBlob(srcBlob) {
 /**
  * Copy an image (by URL) directly into the clipboard WITHOUT opening new tab.
  * Steps:
- * 1) Resolve Wikimedia Special:FilePath → direct CORS URL via MediaWiki API (origin=*)
+ * 1) Resolve Wikimedia Special:FilePath -> direct CORS URL via MediaWiki API (origin=*)
  * 2) Fetch image with CORS
  * 3) Re-encode to PNG for compatibility
  * 4) Write via ClipboardItem

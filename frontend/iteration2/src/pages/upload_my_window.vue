@@ -201,7 +201,7 @@
                     <span class="failed-label">Failed</span>
                   </template>
                 </template>
-                <template v-else>—</template>
+                <template v-else>-</template>
               </div>
 
               <div class="mini-sub">from your window</div>
@@ -261,7 +261,7 @@
                   </template>
                 </template>
                 <template v-else>
-                  <strong>—</strong>
+                  <strong>-</strong>
                   <span class="failed-label">Failed</span>
                 </template>
               </div>
@@ -269,8 +269,8 @@
 
               <div class="mini-sub">
                 <template v-if="canopyAvailable && canopyArea">from {{ canopyArea }}</template>
-                <template v-else-if="canopyAvailable">from your area<span v-if="addressShort"> — {{ addressShort }}</span></template>
-                <template v-else>Outside Melbourne CBD — canopy not available</template>
+                <template v-else-if="canopyAvailable">from your area<span v-if="addressShort"> - {{ addressShort }}</span></template>
+                <template v-else>Outside Melbourne CBD - canopy not available</template>
               </div>
 
               <GoalBar
@@ -499,8 +499,8 @@ const canopyArea = ref<string>('')
 
 /** Available means we have a number; still can be 0 */
 const canopyAvailable = computed(() => typeof canopy.value === 'number' && !Number.isNaN(canopy.value))
-/** Two-decimals number or '—' */
-const canopyDisplay = computed(() => canopyAvailable.value ? (canopy.value as number).toFixed(2) : '—')
+/** Two-decimals number or '-' */
+const canopyDisplay = computed(() => canopyAvailable.value ? (canopy.value as number).toFixed(2) : '-')
 /** Original pass (>=30) used for background color */
 const pass30 = computed(() => canopyAvailable.value && (canopy.value as number) >= 30)
 /** NEW: Canopy icon with 3 states:
@@ -546,7 +546,7 @@ const passes = computed(() => {
   return n
 })
 const summaryText = computed(() => passes.value >= 2
-  ? 'Congratulations — you live in a healthy green environment.'
+  ? 'Congratulations - you live in a healthy green environment.'
   : 'Looks like your area needs more green space.'
 )
 
@@ -666,7 +666,7 @@ function showToast(msg: string, type: 'info' | 'success' | 'error' = 'info', ms 
   toastTimer = window.setTimeout(() => { toastVisible.value = false; toastTimer = null }, ms)
 }
 
-/* ---------- Main flow: upload → moderate → analyze → canopy/park ---------- */
+/* ---------- Main flow: upload -> moderate -> analyze -> canopy/park ---------- */
 async function sha256OfFile(file: File) {
   const buf = await file.arrayBuffer();
   const hash = await crypto.subtle.digest('SHA-256', buf);
@@ -830,13 +830,13 @@ async function safeDelete(bucket: string, key: string, reason?: string) {
     })
     if (!del.ok) {
       console.warn('Delete failed:', await del.text().catch(() => String(del.status)))
-      showToast('We couldn’t delete the uploaded image.', 'error')
+      showToast('We could not delete the uploaded image.', 'error')
     } else if (reason) {
       showToast(reason, 'info')
     }
   } catch (e: any) {
     console.warn('Delete error:', e?.message || e)
-    showToast('We couldn’t delete the uploaded image.', 'error')
+    showToast('We could not delete the uploaded image.', 'error')
   }
 }
 
